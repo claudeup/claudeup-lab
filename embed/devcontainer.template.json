@@ -1,0 +1,15 @@
+{
+  "name": "claudeup-lab - {{ .ProjectName }} ({{ .Profile }})",
+  "image": "{{ .Image }}",
+  "features": {},
+  "remoteUser": "node",
+  "mounts": [],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "CLAUDE_PROFILE": "{{ .Profile }}",
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+  "workspaceFolder": "/workspaces/{{ .DisplayName }}",
+  "postCreateCommand": "claude upgrade && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
+  "waitFor": "postCreateCommand"
+}
