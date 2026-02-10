@@ -25,6 +25,7 @@ without affecting your host setup.`,
 	cmd.AddCommand(newListCmd())
 	cmd.AddCommand(newExecCmd())
 	cmd.AddCommand(newOpenCmd())
+	cmd.AddCommand(newStopCmd())
 
 	return cmd
 }
