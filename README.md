@@ -4,7 +4,7 @@ Ephemeral devcontainer environments for testing Claude Code configurations.
 
 Start a lab, experiment with plugins, skills, agents, and hooks, destroy it when you're done. Your host configuration stays untouched.
 
-> **Status:** Early development. See the [design document](docs/plans/2026-02-10-claudeup-lab-design.md) for architecture details.
+> See the [design document](docs/plans/2026-02-10-claudeup-lab-design.md) for architecture details.
 
 ## What is this?
 
@@ -21,7 +21,14 @@ This is different from Claude Code's built-in [sandbox mode](https://docs.anthro
 ## Install
 
 ```bash
+# One-liner install (macOS/Linux)
 curl -fsSL https://raw.githubusercontent.com/claudeup/claudeup-lab/main/scripts/install.sh | bash
+
+# Install a specific version
+VERSION=0.1.0 curl -fsSL https://raw.githubusercontent.com/claudeup/claudeup-lab/main/scripts/install.sh | bash
+
+# Or build from source
+go install github.com/claudeup/claudeup-lab/cmd/claudeup-lab@latest
 ```
 
 ## Quick Start
