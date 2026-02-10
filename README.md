@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/claudeup/claudeup-lab/main/scripts/
 # Install a specific version
 VERSION=0.1.0 curl -fsSL https://raw.githubusercontent.com/claudeup/claudeup-lab/main/scripts/install.sh | bash
 
-# Or build from source
+# Or build from source (version will show "dev")
 go install github.com/claudeup/claudeup-lab/cmd/claudeup-lab@latest
 ```
 
