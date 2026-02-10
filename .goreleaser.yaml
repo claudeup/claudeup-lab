@@ -1,0 +1,27 @@
+project_name: claudeup-lab
+
+builds:
+  - main: ./cmd/claudeup-lab
+    binary: claudeup-lab
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/claudeup/claudeup-lab/internal/commands.version={{.Version}}
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: claudeup
+    name: claudeup-lab
