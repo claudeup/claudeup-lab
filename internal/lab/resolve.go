@@ -2,6 +2,7 @@ package lab
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -72,7 +73,7 @@ func (r *Resolver) ResolveByCWD(cwd string) (*Metadata, error) {
 	}
 
 	for _, m := range labs {
-		if strings.HasPrefix(cwd, m.Worktree) {
+		if cwd == m.Worktree || strings.HasPrefix(cwd, m.Worktree+string(filepath.Separator)) {
 			return m, nil
 		}
 	}

@@ -139,7 +139,10 @@ func buildFeatures(specs []string) map[string]interface{} {
 
 	// Load feature registry
 	var registry map[string]featureEntry
-	json.Unmarshal(assets.FeaturesJSON, &registry)
+	if err := json.Unmarshal(assets.FeaturesJSON, &registry); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to parse feature registry: %v\n", err)
+		return map[string]interface{}{}
+	}
 
 	features := make(map[string]interface{})
 	for _, spec := range specs {

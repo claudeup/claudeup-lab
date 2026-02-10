@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/claudeup/claudeup-lab/internal/docker"
@@ -188,31 +189,45 @@ func (m *Manager) Remove(meta *Metadata, confirmed bool) error {
 		return fmt.Errorf("removal not confirmed")
 	}
 
+	var errs []string
+
 	// Stop and remove container
 	containerID, _ := m.docker.FindContainerIncludingStopped(meta.Worktree)
 	if containerID != "" {
 		fmt.Println("Removing container...")
-		m.docker.RemoveContainer(containerID)
+		if err := m.docker.RemoveContainer(containerID); err != nil {
+			errs = append(errs, fmt.Sprintf("remove container: %v", err))
+		}
 	}
 
 	// Remove volumes
 	fmt.Println("Removing Docker volumes...")
 	volumes, _ := m.docker.ListVolumes(meta.ID)
 	if len(volumes) > 0 {
-		m.docker.RemoveVolumes(volumes)
+		if err := m.docker.RemoveVolumes(volumes); err != nil {
+			errs = append(errs, fmt.Sprintf("remove volumes: %v", err))
+		}
 	}
 
 	// Remove worktree
 	fmt.Println("Removing worktree...")
-	m.worktrees.RemoveWorktree(meta.BareRepo, meta.Worktree)
+	if err := m.worktrees.RemoveWorktree(meta.BareRepo, meta.Worktree); err != nil {
+		errs = append(errs, fmt.Sprintf("remove worktree: %v", err))
+	}
 
 	// Remove metadata
 	fmt.Println("Removing metadata...")
-	m.store.Delete(meta.ID)
+	if err := m.store.Delete(meta.ID); err != nil {
+		errs = append(errs, fmt.Sprintf("remove metadata: %v", err))
+	}
 
 	// Clean up snapshot profile if applicable
 	if meta.Snapshot != "" {
 		m.profiles.CleanupSnapshot(meta.Snapshot)
+	}
+
+	if len(errs) > 0 {
+		fmt.Fprintf(os.Stderr, "Warning: partial cleanup errors: %s\n", strings.Join(errs, "; "))
 	}
 
 	fmt.Printf("Removed lab: %s\n", meta.DisplayName)

@@ -28,12 +28,12 @@ func newOpenCmd() *cobra.Command {
 				return err
 			}
 
-			containerID, err := mgr.Docker().ContainerHostname(meta.Worktree)
+			hostname, err := mgr.Docker().ContainerHostname(meta.Worktree)
 			if err != nil {
-				return fmt.Errorf("could not get container ID -- is the lab running? %w", err)
+				return fmt.Errorf("could not get container hostname -- is the lab running? %w", err)
 			}
 
-			hexID := hex.EncodeToString([]byte(containerID))
+			hexID := hex.EncodeToString([]byte(hostname))
 			uri := fmt.Sprintf("vscode-remote://attached-container+%s/workspaces/%s", hexID, meta.DisplayName)
 
 			codeCmd := exec.Command("code", "--folder-uri", uri)

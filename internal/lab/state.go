@@ -51,6 +51,9 @@ func (s *StateStore) Save(meta *Metadata) error {
 }
 
 func (s *StateStore) Load(id string) (*Metadata, error) {
+	if err := validateID(id); err != nil {
+		return nil, err
+	}
 	path := filepath.Join(s.dir, id+".json")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -90,7 +93,17 @@ func (s *StateStore) List() ([]*Metadata, error) {
 	return labs, nil
 }
 
+func validateID(id string) error {
+	if strings.Contains(id, "/") || strings.Contains(id, "..") || strings.Contains(id, string(filepath.Separator)) {
+		return fmt.Errorf("invalid lab ID %q: must not contain path separators or '..'", id)
+	}
+	return nil
+}
+
 func (s *StateStore) Delete(id string) error {
+	if err := validateID(id); err != nil {
+		return err
+	}
 	path := filepath.Join(s.dir, id+".json")
 	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("delete metadata for %s: %w", id, err)

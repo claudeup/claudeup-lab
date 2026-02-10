@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // WorktreeManager handles bare clone creation/refresh and git worktree operations.
@@ -121,12 +122,23 @@ func (w *WorktreeManager) CreateWorktree(barePath, worktreePath, branch string) 
 	// Exclude .devcontainer/ from git tracking
 	gitDir := w.worktreeGitDir(worktreePath)
 	excludeFile := filepath.Join(gitDir, "info", "exclude")
-	os.MkdirAll(filepath.Dir(excludeFile), 0o755)
+	if err := os.MkdirAll(filepath.Dir(excludeFile), 0o755); err != nil {
+		return "", fmt.Errorf("create git info directory: %w", err)
+	}
 	content, _ := os.ReadFile(excludeFile)
 	if !strings.Contains(string(content), ".devcontainer/") {
-		f, _ := os.OpenFile(excludeFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-		f.WriteString(".devcontainer/\n")
-		f.Close()
+		f, err := os.OpenFile(excludeFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			return "", fmt.Errorf("open git exclude file: %w", err)
+		}
+		_, writeErr := f.WriteString(".devcontainer/\n")
+		closeErr := f.Close()
+		if writeErr != nil {
+			return "", fmt.Errorf("write git exclude: %w", writeErr)
+		}
+		if closeErr != nil {
+			return "", fmt.Errorf("close git exclude: %w", closeErr)
+		}
 	}
 
 	return branch, nil
@@ -137,7 +149,9 @@ func (w *WorktreeManager) RemoveWorktree(barePath, worktreePath string) error {
 		worktreePath, "--force")
 	if err := cmd.Run(); err != nil {
 		// Fall back to removing the directory directly
-		os.RemoveAll(worktreePath)
+		if removeErr := os.RemoveAll(worktreePath); removeErr != nil {
+			return fmt.Errorf("remove worktree directory %s: %w (git worktree remove also failed: %v)", worktreePath, removeErr, err)
+		}
 	}
 	return nil
 }
@@ -188,6 +202,9 @@ func hashPrefix(s string) string {
 
 func randomSuffix() string {
 	b := make([]byte, 4)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// Fall back to timestamp-based suffix
+		return fmt.Sprintf("%x", time.Now().UnixNano()&0xFFFFFFFF)
+	}
 	return fmt.Sprintf("%x", b)
 }

@@ -7,9 +7,12 @@ import (
 )
 
 func TestImageExistsLocally(t *testing.T) {
+	requireDocker(t)
 	im := docker.NewImageManager()
-	exists := im.ExistsLocally("docker.io/library/hello-world:latest")
-	t.Logf("hello-world exists locally: %v", exists)
+	exists := im.ExistsLocally("claudeup-test-image-that-should-not-exist:latest")
+	if exists {
+		t.Error("expected non-existent image to return false")
+	}
 }
 
 func TestImageNameConstants(t *testing.T) {
