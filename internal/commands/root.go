@@ -23,6 +23,7 @@ without affecting your host setup.`,
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newStartCmd())
 	cmd.AddCommand(newListCmd())
+	cmd.AddCommand(newExecCmd())
 
 	return cmd
 }
