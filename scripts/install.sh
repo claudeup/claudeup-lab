@@ -13,11 +13,12 @@ case "$ARCH" in
     *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 
-# Get latest version
-VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
+# Get version (override with VERSION env var)
+if [ -z "${VERSION:-}" ]; then
+    VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
+fi
 if [ -z "$VERSION" ]; then
-    echo "Could not determine latest version" >&2
-    exit 1
+    VERSION="0.1.0"
 fi
 
 echo "Downloading claudeup-lab v${VERSION} for ${OS}-${ARCH}..."
