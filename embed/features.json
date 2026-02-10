@@ -1,0 +1,22 @@
+{
+  "go": {
+    "feature": "ghcr.io/devcontainers/features/go:1",
+    "default_version": "latest"
+  },
+  "rust": {
+    "feature": "ghcr.io/devcontainers/features/rust:1",
+    "default_version": "latest"
+  },
+  "python": {
+    "feature": "ghcr.io/devcontainers/features/python:1",
+    "default_version": "latest"
+  },
+  "node": {
+    "feature": "ghcr.io/devcontainers/features/node:1",
+    "default_version": "latest"
+  },
+  "java": {
+    "feature": "ghcr.io/devcontainers/features/java:1",
+    "default_version": "latest"
+  }
+}
