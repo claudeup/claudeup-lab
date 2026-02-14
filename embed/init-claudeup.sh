@@ -31,38 +31,32 @@ else
     echo "[SKIP] claudeup already installed"
 fi
 
-# Apply base profile first (if provided) to install its marketplaces and plugins
+# Apply base profile at user scope (foundation layer)
 if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
-    echo "Applying base profile: $CLAUDE_BASE_PROFILE..."
-    if claudeup profile apply "$CLAUDE_BASE_PROFILE" -y; then
-        echo "[OK] Base profile '$CLAUDE_BASE_PROFILE' applied"
+    echo "Applying base profile: $CLAUDE_BASE_PROFILE (user scope)..."
+    if claudeup profile apply "$CLAUDE_BASE_PROFILE" --user -y; then
+        echo "[OK] Base profile '$CLAUDE_BASE_PROFILE' applied at user scope"
     else
         echo "[WARN] Base profile apply failed, will retry on next container start"
         exit 1
     fi
-    # Capture base profile's enabledPlugins before they get replaced
-    if [ -f "$CLAUDE_HOME/settings.json" ]; then
-        base_plugins=$(jq '.enabledPlugins // {}' "$CLAUDE_HOME/settings.json")
-    else
-        echo "[WARN] settings.json not found after base profile apply, skipping plugin capture"
-        base_plugins="{}"
-    fi
 fi
 
-echo "Applying profile: $CLAUDE_PROFILE..."
-if claudeup profile apply "$CLAUDE_PROFILE" -y; then
-    echo "[OK] Profile '$CLAUDE_PROFILE' applied"
+# Apply profile: project scope when layering on a base, user scope otherwise
+if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
+    apply_scope="--project"
+    scope_label="project"
+else
+    apply_scope="--user"
+    scope_label="user"
+fi
+
+echo "Applying profile: $CLAUDE_PROFILE ($scope_label scope)..."
+if claudeup profile apply "$CLAUDE_PROFILE" $apply_scope -y; then
+    echo "[OK] Profile '$CLAUDE_PROFILE' applied at $scope_label scope"
 else
     echo "[WARN] claudeup profile apply failed, will retry on next container start"
     exit 1
-fi
-
-# Merge base profile's enabledPlugins back so both sets of plugins are active
-if [ -n "${base_plugins:-}" ] && [ "$base_plugins" != "{}" ]; then
-    local_settings="$CLAUDE_HOME/settings.json"
-    jq --argjson base "$base_plugins" '.enabledPlugins = ($base + (.enabledPlugins // {}))' "$local_settings" > "${local_settings}.tmp"
-    mv "${local_settings}.tmp" "$local_settings"
-    echo "[OK] Base profile enabledPlugins merged"
 fi
 
 # Sync local items (agents, commands, skills, hooks, output-styles) from profiles.
