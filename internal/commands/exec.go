@@ -35,6 +35,7 @@ func newExecCmd() *cobra.Command {
 			}
 
 			devCmd := exec.Command("devcontainer", execArgs...)
+			devCmd.Dir = meta.Worktree // avoid "CWD outside mount namespace" when host CWD isn't mapped
 			devCmd.Stdin = os.Stdin
 			devCmd.Stdout = os.Stdout
 			devCmd.Stderr = os.Stderr

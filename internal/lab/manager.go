@@ -27,7 +27,7 @@ func NewManager(baseDir string) *Manager {
 		baseDir:   baseDir,
 		store:     NewStateStore(filepath.Join(baseDir, "state")),
 		worktrees: NewWorktreeManager(filepath.Join(baseDir, "repos")),
-		profiles:  NewProfileManager(filepath.Join(os.Getenv("HOME"), ".claudeup", "profiles")),
+		profiles:  NewProfileManager(filepath.Join(ClaudeupHome(), "profiles")),
 		docker:    docker.NewClient(),
 		images:    docker.NewImageManager(),
 	}
@@ -127,6 +127,7 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		Image:        image,
 		BareRepoPath: barePath,
 		HomeDir:      os.Getenv("HOME"),
+		ClaudeupHome: ClaudeupHome(),
 		GitUserName:  gitConfig("user.name"),
 		GitUserEmail: gitConfig("user.email"),
 		GitHubToken:  os.Getenv("GITHUB_TOKEN"),
