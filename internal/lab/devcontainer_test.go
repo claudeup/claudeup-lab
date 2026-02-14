@@ -82,6 +82,107 @@ func TestOptionalMountsSkipped(t *testing.T) {
 	}
 }
 
+func TestClaudeupHomeOverridesMountPaths(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a custom claudeup home with profiles and local dirs
+	customClaudeupHome := t.TempDir()
+	os.MkdirAll(filepath.Join(customClaudeupHome, "profiles"), 0o755)
+	os.MkdirAll(filepath.Join(customClaudeupHome, "local"), 0o755)
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      "/home/user",
+		ClaudeupHome: customClaudeupHome,
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+	content := string(data)
+
+	// Bind mounts should use the custom claudeup home, not $HOME/.claudeup
+	expectedProfilesSource := filepath.Join(customClaudeupHome, "profiles")
+	if !strings.Contains(content, expectedProfilesSource) {
+		t.Errorf("should mount profiles from custom CLAUDEUP_HOME %s, got:\n%s", expectedProfilesSource, content)
+	}
+
+	expectedLocalSource := filepath.Join(customClaudeupHome, "local")
+	if !strings.Contains(content, expectedLocalSource) {
+		t.Errorf("should mount local from custom CLAUDEUP_HOME %s, got:\n%s", expectedLocalSource, content)
+	}
+
+	// Should NOT contain the default $HOME/.claudeup path
+	defaultPath := filepath.Join("/home/user", ".claudeup", "profiles")
+	if strings.Contains(content, defaultPath) {
+		t.Error("should not use default $HOME/.claudeup path when ClaudeupHome is set")
+	}
+}
+
+func TestDefaultClaudeupHomeFallback(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create profiles/local under the fake home's .claudeup
+	fakeHome := t.TempDir()
+	os.MkdirAll(filepath.Join(fakeHome, ".claudeup", "profiles"), 0o755)
+	os.MkdirAll(filepath.Join(fakeHome, ".claudeup", "local"), 0o755)
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      fakeHome,
+		ClaudeupHome: "", // empty = should fall back to HomeDir/.claudeup
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+	content := string(data)
+
+	expectedProfilesSource := filepath.Join(fakeHome, ".claudeup", "profiles")
+	if !strings.Contains(content, expectedProfilesSource) {
+		t.Errorf("should fall back to $HOME/.claudeup/profiles when ClaudeupHome is empty, expected %s in:\n%s",
+			expectedProfilesSource, content)
+	}
+}
+
+func TestClaudeupHomeHelper(t *testing.T) {
+	t.Run("returns CLAUDEUP_HOME when set", func(t *testing.T) {
+		t.Setenv("CLAUDEUP_HOME", "/custom/claudeup")
+		result := lab.ClaudeupHome()
+		if result != "/custom/claudeup" {
+			t.Errorf("expected /custom/claudeup, got %s", result)
+		}
+	})
+
+	t.Run("falls back to HOME/.claudeup when unset", func(t *testing.T) {
+		t.Setenv("CLAUDEUP_HOME", "")
+		home := os.Getenv("HOME")
+		expected := filepath.Join(home, ".claudeup")
+		result := lab.ClaudeupHome()
+		if result != expected {
+			t.Errorf("expected %s, got %s", expected, result)
+		}
+	})
+}
+
 func TestFeatureInjection(t *testing.T) {
 	dir := t.TempDir()
 

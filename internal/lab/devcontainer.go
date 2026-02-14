@@ -19,6 +19,7 @@ type DevcontainerConfig struct {
 	Image        string
 	BareRepoPath string
 	HomeDir      string
+	ClaudeupHome string // Override for ~/.claudeup; empty falls back to HomeDir/.claudeup
 	GitUserName  string
 	GitUserEmail string
 	GitHubToken  string
@@ -89,9 +90,29 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 	return dc
 }
 
+// ClaudeupHome returns the claudeup home directory. It checks CLAUDEUP_HOME
+// first and falls back to $HOME/.claudeup.
+func ClaudeupHome() string {
+	if v := os.Getenv("CLAUDEUP_HOME"); v != "" {
+		return v
+	}
+	return filepath.Join(os.Getenv("HOME"), ".claudeup")
+}
+
+// claudeupHomeFor returns the claudeup home to use for a config. If the config
+// has an explicit ClaudeupHome, that is used; otherwise it falls back to
+// HomeDir/.claudeup.
+func claudeupHomeFor(config *DevcontainerConfig) string {
+	if config.ClaudeupHome != "" {
+		return config.ClaudeupHome
+	}
+	return filepath.Join(config.HomeDir, ".claudeup")
+}
+
 func buildMounts(config *DevcontainerConfig) []string {
 	id := config.ID
 	home := config.HomeDir
+	cupHome := claudeupHomeFor(config)
 
 	mounts := []string{
 		fmt.Sprintf("source=claudeup-lab-bashhistory-%s,target=/commandhistory,type=volume", id),
@@ -105,8 +126,8 @@ func buildMounts(config *DevcontainerConfig) []string {
 		target string
 		opts   string
 	}{
-		{filepath.Join(home, ".claudeup", "profiles"), "/home/node/.claudeup/profiles", "type=bind,readonly"},
-		{filepath.Join(home, ".claudeup", "local"), "/home/node/.claudeup/local", "type=bind,readonly"},
+		{filepath.Join(cupHome, "profiles"), "/home/node/.claudeup/profiles", "type=bind,readonly"},
+		{filepath.Join(cupHome, "local"), "/home/node/.claudeup/local", "type=bind,readonly"},
 		{filepath.Join(home, ".claude-mem"), "/home/node/.claude-mem", "type=bind"},
 		{filepath.Join(home, ".ssh"), "/home/node/.ssh", "type=bind,readonly"},
 		{filepath.Join(home, ".claude", "settings.json"), "/tmp/base-settings.json", "type=bind,readonly"},
