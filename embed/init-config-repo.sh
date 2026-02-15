@@ -47,7 +47,7 @@ done
 
 # Sync symlinks from enabled.json
 if command -v claudeup &> /dev/null && [ -f "$CLAUDE_HOME/enabled.json" ]; then
-    claudeup local sync -y
+    claudeup ext sync -y
     echo "[OK] Extension symlinks synced"
 fi
 
