@@ -45,7 +45,7 @@ func newRmCmd() *cobra.Command {
 			var prompt *lab.BareRepoCleanupPrompt
 			if errors.As(err, &prompt) {
 				fmt.Printf("\nBare repo %s has no remaining worktrees.\n", prompt.BareRepo)
-				if confirm("Remove bare repo?") {
+				if force || confirm("Remove bare repo?") {
 					os.RemoveAll(prompt.BareRepo)
 					fmt.Printf("Removed bare repo: %s\n", prompt.BareRepo)
 				}
