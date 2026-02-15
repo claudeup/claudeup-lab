@@ -85,10 +85,10 @@ func TestOptionalMountsSkipped(t *testing.T) {
 func TestClaudeupHomeOverridesMountPaths(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create a custom claudeup home with profiles and local dirs
+	// Create a custom claudeup home with profiles and extension dirs
 	customClaudeupHome := t.TempDir()
 	os.MkdirAll(filepath.Join(customClaudeupHome, "profiles"), 0o755)
-	os.MkdirAll(filepath.Join(customClaudeupHome, "local"), 0o755)
+	os.MkdirAll(filepath.Join(customClaudeupHome, "ext"), 0o755)
 
 	config := &lab.DevcontainerConfig{
 		ProjectName:  "myapp",
@@ -116,9 +116,9 @@ func TestClaudeupHomeOverridesMountPaths(t *testing.T) {
 		t.Errorf("should mount profiles from custom CLAUDEUP_HOME %s, got:\n%s", expectedProfilesSource, content)
 	}
 
-	expectedLocalSource := filepath.Join(customClaudeupHome, "local")
-	if !strings.Contains(content, expectedLocalSource) {
-		t.Errorf("should mount local from custom CLAUDEUP_HOME %s, got:\n%s", expectedLocalSource, content)
+	expectedExtSource := filepath.Join(customClaudeupHome, "ext")
+	if !strings.Contains(content, expectedExtSource) {
+		t.Errorf("should mount ext from custom CLAUDEUP_HOME %s, got:\n%s", expectedExtSource, content)
 	}
 
 	// Should NOT contain the default $HOME/.claudeup path
@@ -134,7 +134,7 @@ func TestDefaultClaudeupHomeFallback(t *testing.T) {
 	// Create profiles/local under the fake home's .claudeup
 	fakeHome := t.TempDir()
 	os.MkdirAll(filepath.Join(fakeHome, ".claudeup", "profiles"), 0o755)
-	os.MkdirAll(filepath.Join(fakeHome, ".claudeup", "local"), 0o755)
+	os.MkdirAll(filepath.Join(fakeHome, ".claudeup", "ext"), 0o755)
 
 	config := &lab.DevcontainerConfig{
 		ProjectName:  "myapp",

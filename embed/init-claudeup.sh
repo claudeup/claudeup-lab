@@ -59,32 +59,32 @@ else
     exit 1
 fi
 
-# Sync local items (agents, commands, skills, hooks, output-styles) from profiles.
+# Sync extensions (agents, commands, skills, hooks, output-styles) from profiles.
 # Skip if enabled.json already exists (e.g., deployed by init-config-repo.sh).
 if [ ! -f "$CLAUDE_HOME/enabled.json" ]; then
-    # Generate enabled.json from profile localItems
-    local_items_base="{}"
+    # Generate enabled.json from profile extensions
+    ext_base="{}"
     if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
         base_file="$CLAUDEUP_HOME/profiles/$CLAUDE_BASE_PROFILE.json"
-        if [ -f "$base_file" ] && jq -e '.localItems' "$base_file" > /dev/null 2>&1; then
-            local_items_base=$(jq '.localItems | with_entries(.value |= (map({(.): true}) | add // {}))' "$base_file")
+        if [ -f "$base_file" ] && jq -e '.extensions' "$base_file" > /dev/null 2>&1; then
+            ext_base=$(jq '.extensions | with_entries(.value |= (map({(.): true}) | add // {}))' "$base_file")
         fi
     fi
 
-    local_items_profile="{}"
+    ext_profile="{}"
     profile_file="$CLAUDEUP_HOME/profiles/$CLAUDE_PROFILE.json"
-    if [ -f "$profile_file" ] && jq -e '.localItems' "$profile_file" > /dev/null 2>&1; then
-        local_items_profile=$(jq '.localItems | with_entries(.value |= (map({(.): true}) | add // {}))' "$profile_file")
+    if [ -f "$profile_file" ] && jq -e '.extensions' "$profile_file" > /dev/null 2>&1; then
+        ext_profile=$(jq '.extensions | with_entries(.value |= (map({(.): true}) | add // {}))' "$profile_file")
     fi
 
     # Merge base + profile items (profile wins on conflicts)
-    merged_items=$(jq -n --argjson base "$local_items_base" --argjson profile "$local_items_profile" '$base * $profile')
+    merged_items=$(jq -n --argjson base "$ext_base" --argjson profile "$ext_profile" '$base * $profile')
 
     if [ "$merged_items" != "{}" ]; then
         echo "$merged_items" > "$CLAUDE_HOME/enabled.json"
-        echo "[OK] enabled.json generated from profile localItems"
+        echo "[OK] enabled.json generated from profile extensions"
     else
-        echo "[SKIP] No localItems in profile(s)"
+        echo "[SKIP] No extensions in profile(s)"
     fi
 else
     echo "[SKIP] enabled.json already exists"
