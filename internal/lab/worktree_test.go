@@ -1,9 +1,11 @@
 package lab_test
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/claudeup/claudeup-lab/internal/lab"
@@ -120,6 +122,46 @@ func TestRemoveWorktree(t *testing.T) {
 
 	if _, err := os.Stat(wtPath); !os.IsNotExist(err) {
 		t.Error("worktree directory should be removed")
+	}
+}
+
+func TestEnsureBareRepoRefreshFailureReturnsStaleRepo(t *testing.T) {
+	source := initTestRepo(t)
+	reposDir := filepath.Join(t.TempDir(), "repos")
+
+	wt := lab.NewWorktreeManager(reposDir)
+	barePath, err := wt.EnsureBareRepo(source, "testproject")
+	if err != nil {
+		t.Fatalf("EnsureBareRepo (create): %v", err)
+	}
+
+	// Remove source repo to simulate network/auth failure on refresh
+	os.RemoveAll(source)
+
+	// Capture stderr to verify warning is emitted
+	origStderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stderr = w
+	t.Cleanup(func() { os.Stderr = origStderr })
+
+	barePath2, err := wt.EnsureBareRepo(source, "testproject")
+
+	w.Close()
+	stderrBytes, _ := io.ReadAll(r)
+	os.Stderr = origStderr
+	stderrOutput := string(stderrBytes)
+
+	if err != nil {
+		t.Fatalf("EnsureBareRepo should succeed with stale repo, got: %v", err)
+	}
+	if barePath != barePath2 {
+		t.Errorf("paths differ: %q vs %q", barePath, barePath2)
+	}
+	if !strings.Contains(stderrOutput, "Warning") || !strings.Contains(stderrOutput, "stale") {
+		t.Errorf("expected warning about stale repo on stderr, got: %q", stderrOutput)
 	}
 }
 

@@ -1,6 +1,7 @@
 package lab
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"os"
@@ -41,7 +42,9 @@ func (w *WorktreeManager) EnsureBareRepo(sourceProject, projectName string) (str
 
 	if info, err := os.Stat(barePath); err == nil && info.IsDir() {
 		// Refresh existing bare clone
-		w.refreshBareRepo(barePath, sourceProject)
+		if err := w.refreshBareRepo(barePath, sourceProject); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to refresh bare repo (using stale copy): %v\n", err)
+		}
 		return barePath, nil
 	}
 
@@ -53,10 +56,24 @@ func (w *WorktreeManager) EnsureBareRepo(sourceProject, projectName string) (str
 	return barePath, nil
 }
 
-func (w *WorktreeManager) refreshBareRepo(barePath, sourceProject string) {
-	exec.Command("git", "-C", barePath, "fetch", "--all", "--prune").Run()
-	exec.Command("git", "-C", barePath, "fetch", sourceProject,
-		"+refs/heads/*:refs/heads/*").Run()
+func (w *WorktreeManager) refreshBareRepo(barePath, sourceProject string) error {
+	var errs []string
+
+	cmd := exec.Command("git", "-C", barePath, "fetch", "--all", "--prune")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		errs = append(errs, fmt.Sprintf("fetch --all: %s (%v)", bytes.TrimSpace(out), err))
+	}
+
+	cmd = exec.Command("git", "-C", barePath, "fetch", sourceProject,
+		"+refs/heads/*:refs/heads/*")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		errs = append(errs, fmt.Sprintf("fetch local branches: %s (%v)", bytes.TrimSpace(out), err))
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return nil
 }
 
 func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile string) error {
@@ -69,8 +86,11 @@ func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile str
 		cmd := exec.Command("git", "clone", "--bare", upstream, barePath)
 		if cmd.Run() == nil {
 			// Fetch local branches not yet pushed
-			exec.Command("git", "-C", barePath, "fetch", sourceProject,
-				"+refs/heads/*:refs/heads/*").Run()
+			fetchCmd := exec.Command("git", "-C", barePath, "fetch", sourceProject,
+				"+refs/heads/*:refs/heads/*")
+			if out, err := fetchCmd.CombinedOutput(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to fetch local branches into bare repo: %s (%v)\n", bytes.TrimSpace(out), err)
+			}
 		} else {
 			// Upstream clone failed, fall back to local
 			os.RemoveAll(barePath)
@@ -86,7 +106,9 @@ func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile str
 		}
 	}
 
-	os.WriteFile(filepath.Join(barePath, markerFile), []byte(sourceProject), 0o644)
+	if err := os.WriteFile(filepath.Join(barePath, markerFile), []byte(sourceProject), 0o644); err != nil {
+		return fmt.Errorf("write source marker file: %w", err)
+	}
 	return nil
 }
 
