@@ -41,7 +41,9 @@ func (w *WorktreeManager) EnsureBareRepo(sourceProject, projectName string) (str
 
 	if info, err := os.Stat(barePath); err == nil && info.IsDir() {
 		// Refresh existing bare clone
-		w.refreshBareRepo(barePath, sourceProject)
+		if err := w.refreshBareRepo(barePath, sourceProject); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to refresh bare repo (using stale copy): %v\n", err)
+		}
 		return barePath, nil
 	}
 
@@ -53,10 +55,15 @@ func (w *WorktreeManager) EnsureBareRepo(sourceProject, projectName string) (str
 	return barePath, nil
 }
 
-func (w *WorktreeManager) refreshBareRepo(barePath, sourceProject string) {
-	exec.Command("git", "-C", barePath, "fetch", "--all", "--prune").Run()
-	exec.Command("git", "-C", barePath, "fetch", sourceProject,
-		"+refs/heads/*:refs/heads/*").Run()
+func (w *WorktreeManager) refreshBareRepo(barePath, sourceProject string) error {
+	if err := exec.Command("git", "-C", barePath, "fetch", "--all", "--prune").Run(); err != nil {
+		return fmt.Errorf("fetch --all in %s: %w", barePath, err)
+	}
+	if err := exec.Command("git", "-C", barePath, "fetch", sourceProject,
+		"+refs/heads/*:refs/heads/*").Run(); err != nil {
+		return fmt.Errorf("fetch local branches from %s: %w", sourceProject, err)
+	}
+	return nil
 }
 
 func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile string) error {
