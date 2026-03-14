@@ -1,6 +1,7 @@
 package lab_test
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -141,14 +142,14 @@ func TestEnsureBareRepoRefreshFailureReturnsStaleRepo(t *testing.T) {
 	origStderr := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
+	t.Cleanup(func() { os.Stderr = origStderr })
 
 	barePath2, err := wt.EnsureBareRepo(source, "testproject")
 
 	w.Close()
-	var stderrBuf [4096]byte
-	n, _ := r.Read(stderrBuf[:])
+	stderrBytes, _ := io.ReadAll(r)
 	os.Stderr = origStderr
-	stderrOutput := string(stderrBuf[:n])
+	stderrOutput := string(stderrBytes)
 
 	if err != nil {
 		t.Fatalf("EnsureBareRepo should succeed with stale repo, got: %v", err)
@@ -156,8 +157,8 @@ func TestEnsureBareRepoRefreshFailureReturnsStaleRepo(t *testing.T) {
 	if barePath != barePath2 {
 		t.Errorf("paths differ: %q vs %q", barePath, barePath2)
 	}
-	if !strings.Contains(stderrOutput, "Warning") {
-		t.Errorf("expected warning on stderr, got: %q", stderrOutput)
+	if !strings.Contains(stderrOutput, "Warning") || !strings.Contains(stderrOutput, "stale") {
+		t.Errorf("expected warning about stale repo on stderr, got: %q", stderrOutput)
 	}
 }
 

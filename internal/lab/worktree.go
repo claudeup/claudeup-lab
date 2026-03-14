@@ -76,8 +76,10 @@ func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile str
 		cmd := exec.Command("git", "clone", "--bare", upstream, barePath)
 		if cmd.Run() == nil {
 			// Fetch local branches not yet pushed
-			exec.Command("git", "-C", barePath, "fetch", sourceProject,
-				"+refs/heads/*:refs/heads/*").Run()
+			if err := exec.Command("git", "-C", barePath, "fetch", sourceProject,
+				"+refs/heads/*:refs/heads/*").Run(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to fetch local branches into bare repo: %v\n", err)
+			}
 		} else {
 			// Upstream clone failed, fall back to local
 			os.RemoveAll(barePath)
@@ -93,7 +95,9 @@ func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile str
 		}
 	}
 
-	os.WriteFile(filepath.Join(barePath, markerFile), []byte(sourceProject), 0o644)
+	if err := os.WriteFile(filepath.Join(barePath, markerFile), []byte(sourceProject), 0o644); err != nil {
+		return fmt.Errorf("write source marker file: %w", err)
+	}
 	return nil
 }
 
