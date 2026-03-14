@@ -1,6 +1,7 @@
 package lab
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"os"
@@ -56,12 +57,21 @@ func (w *WorktreeManager) EnsureBareRepo(sourceProject, projectName string) (str
 }
 
 func (w *WorktreeManager) refreshBareRepo(barePath, sourceProject string) error {
-	if err := exec.Command("git", "-C", barePath, "fetch", "--all", "--prune").Run(); err != nil {
-		return fmt.Errorf("fetch --all in %s: %w", barePath, err)
+	var errs []string
+
+	cmd := exec.Command("git", "-C", barePath, "fetch", "--all", "--prune")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		errs = append(errs, fmt.Sprintf("fetch --all: %s (%v)", bytes.TrimSpace(out), err))
 	}
-	if err := exec.Command("git", "-C", barePath, "fetch", sourceProject,
-		"+refs/heads/*:refs/heads/*").Run(); err != nil {
-		return fmt.Errorf("fetch local branches from %s: %w", sourceProject, err)
+
+	cmd = exec.Command("git", "-C", barePath, "fetch", sourceProject,
+		"+refs/heads/*:refs/heads/*")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		errs = append(errs, fmt.Sprintf("fetch local branches: %s (%v)", bytes.TrimSpace(out), err))
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
 	}
 	return nil
 }
@@ -76,9 +86,10 @@ func (w *WorktreeManager) createBareRepo(barePath, sourceProject, markerFile str
 		cmd := exec.Command("git", "clone", "--bare", upstream, barePath)
 		if cmd.Run() == nil {
 			// Fetch local branches not yet pushed
-			if err := exec.Command("git", "-C", barePath, "fetch", sourceProject,
-				"+refs/heads/*:refs/heads/*").Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to fetch local branches into bare repo: %v\n", err)
+			fetchCmd := exec.Command("git", "-C", barePath, "fetch", sourceProject,
+				"+refs/heads/*:refs/heads/*")
+			if out, err := fetchCmd.CombinedOutput(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to fetch local branches into bare repo: %s (%v)\n", bytes.TrimSpace(out), err)
 			}
 		} else {
 			// Upstream clone failed, fall back to local

@@ -140,7 +140,10 @@ func TestEnsureBareRepoRefreshFailureReturnsStaleRepo(t *testing.T) {
 
 	// Capture stderr to verify warning is emitted
 	origStderr := os.Stderr
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
 	os.Stderr = w
 	t.Cleanup(func() { os.Stderr = origStderr })
 
