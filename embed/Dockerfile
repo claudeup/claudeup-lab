@@ -102,6 +102,7 @@ USER root
 COPY --chmod=755 init-claude-config.sh /usr/local/bin/
 COPY --chmod=755 init-config-repo.sh /usr/local/bin/
 COPY --chmod=755 init-claudeup.sh /usr/local/bin/
+COPY --chmod=755 init-firewall.sh /usr/local/bin/
 
 # Allow node user to run firewall init without password (used when --firewall is enabled)
 RUN echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \

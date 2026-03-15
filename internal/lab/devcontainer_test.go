@@ -321,15 +321,6 @@ func TestFirewallEnabled(t *testing.T) {
 		t.Errorf("postStartCommand should reference init-firewall.sh, got: %s", postStart)
 	}
 
-	// init-firewall.sh should be written to .devcontainer/
-	fwPath := filepath.Join(dir, ".devcontainer", "init-firewall.sh")
-	fwData, err := os.ReadFile(fwPath)
-	if err != nil {
-		t.Fatalf("init-firewall.sh should exist in .devcontainer/: %v", err)
-	}
-	if !strings.Contains(string(fwData), "#!/bin/bash") {
-		t.Error("init-firewall.sh should be a bash script")
-	}
 }
 
 func TestFirewallDisabledByDefault(t *testing.T) {
@@ -359,11 +350,6 @@ func TestFirewallDisabledByDefault(t *testing.T) {
 	}
 	if strings.Contains(content, "postStartCommand") {
 		t.Error("devcontainer.json should not have postStartCommand when firewall is disabled")
-	}
-
-	fwPath := filepath.Join(dir, ".devcontainer", "init-firewall.sh")
-	if _, err := os.Stat(fwPath); err == nil {
-		t.Error("init-firewall.sh should not exist when firewall is disabled")
 	}
 }
 

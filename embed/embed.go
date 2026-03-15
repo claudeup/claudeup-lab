@@ -19,6 +19,3 @@ var InitConfigRepo []byte
 
 //go:embed init-claudeup.sh
 var InitClaudeup []byte
-
-//go:embed init-firewall.sh
-var InitFirewall []byte
