@@ -10,46 +10,29 @@ Download binaries directly from their release URLs, verify SHA-256 checksums bef
 
 ## Approach: Direct Download + Checksum Verification
 
-Instead of piping remote install scripts to bash, download the release artifacts directly, verify their checksums, then extract and place the binaries manually. Nothing executes before checksum verification passes.
+Instead of piping remote install scripts to bash, download the release artifacts directly, verify their checksums, then extract and place the binaries manually. Nothing executes before checksum verification passes. Architecture is detected at build time via `uname -m` to support both x64 and arm64.
 
 ### Bun
 
-```dockerfile
-ARG BUN_VERSION=<latest stable>
-ARG BUN_SHA256=<hash from SHASUMS256.txt>
-RUN curl -fsSL -o /tmp/bun.zip \
-        "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-x64.zip" \
-    && echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c - \
-    && mkdir -p /home/node/.bun/bin \
-    && unzip -j /tmp/bun.zip "*/bun" -d /home/node/.bun/bin \
-    && chmod 755 /home/node/.bun/bin/bun \
-    && rm -f /tmp/bun.zip
-```
-
 - Checksum covers the zip archive (matches `SHASUMS256.txt` format)
 - Checksum source: `https://github.com/oven-sh/bun/releases/download/bun-v{VERSION}/SHASUMS256.txt`
-- Platform: `linux-x64` (the Dockerfile base image is `node:22`, Debian amd64)
+- Platforms: `linux-x64` (x86_64) and `linux-aarch64` (arm64)
 - `unzip -j` with a glob pattern extracts the binary regardless of internal directory structure
 - Requires `unzip` -- must be added to the `apt-get install` line
 - Version discovery: check `https://github.com/oven-sh/bun/releases/latest`
 
 ### Claude CLI
 
-```dockerfile
-ARG CLAUDE_VERSION=<latest stable>
-ARG CLAUDE_SHA256=<hash from manifest.json>
-RUN curl -fsSL -o /tmp/claude \
-        "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/${CLAUDE_VERSION}/linux-x64/claude" \
-    && echo "${CLAUDE_SHA256}  /tmp/claude" | sha256sum -c - \
-    && install -m 755 /tmp/claude /home/node/.local/bin/claude \
-    && rm /tmp/claude
-```
-
 - The Claude CLI release is a single binary (not an archive)
 - Checksum is hex-encoded SHA-256, covers the binary directly
-- Checksum source: `https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/{VERSION}/manifest.json` -- use the `linux-x64` entry's `checksum` field
+- Checksum source: `https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/{VERSION}/manifest.json` -- use the platform entry's `checksum` field
+- Platforms: `linux-x64` (x86_64) and `linux-arm64` (aarch64)
 - `install -m 755` sets permissions and moves atomically (consistent with the pattern used in #10 for `scripts/install.sh`)
 - Version discovery: fetch `https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/latest` for the current version string, or run `claude --version` from an existing installation
+
+### Multi-Architecture Support
+
+Each `RUN` layer detects the build platform via `uname -m` and selects the correct download URL and checksum. Separate `ARG` declarations are provided for x64 and arm64 checksums (e.g., `BUN_SHA256_X64`, `BUN_SHA256_ARM64`). Unsupported architectures fail the build with a clear error message.
 
 ### ARG Placement
 
@@ -77,7 +60,7 @@ Actual version numbers and checksums will be determined at implementation time b
 
 ## Trade-offs
 
-- **Platform-specific**: The direct download URLs target `linux-x64`. This is fine because Docker builds always run on Linux, but it means the Dockerfile cannot be built natively on macOS/ARM without emulation. This is already the case with `node:22` (amd64).
+- **Two supported architectures**: x64 and arm64 are supported. Other architectures will fail the build with a clear error.
 - **Manual version bumps**: No automation for updating versions. Acceptable for a fallback build path that is rarely exercised (the primary path pulls a pre-built image from the registry).
 - **No install script side effects**: By skipping the install scripts, we may miss setup steps they perform (e.g., shell completions, PATH modifications). The Dockerfile already handles PATH via `ENV` on line 42, so this is acceptable.
 
