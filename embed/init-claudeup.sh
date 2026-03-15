@@ -100,6 +100,20 @@ if [ -f "$CLAUDE_HOME/enabled.json" ]; then
         claudeup ext sync -y
         echo "[OK] Extension item symlinks synced"
     fi
+
+    # Install npm dependencies for plugins that need them (e.g., native modules).
+    # This prevents first-boot race conditions where hooks fire before the MCP
+    # wrapper has installed dependencies.
+    if [ -d "$CLAUDE_HOME/plugins/cache" ]; then
+        find "$CLAUDE_HOME/plugins/cache" -maxdepth 4 -name package.json -not -path '*/node_modules/*' | while read -r pkg; do
+            plugin_dir=$(dirname "$pkg")
+            if [ ! -d "$plugin_dir/node_modules" ]; then
+                echo "Installing dependencies for $(basename "$plugin_dir")..."
+                (cd "$plugin_dir" && npm install --prefer-offline --no-audit --no-fund 2>&1) || true
+            fi
+        done
+        echo "[OK] Plugin dependencies installed"
+    fi
 fi
 
 touch "$MARKER_FILE"
