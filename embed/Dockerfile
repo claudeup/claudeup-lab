@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep fd-find \
     build-essential make \
     python3 \
-    nano vim \
+    nano vim unzip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
@@ -41,12 +41,41 @@ USER node
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin:/home/node/.local/bin:/home/node/.bun/bin
 
-RUN curl -fsSL https://bun.sh/install | bash
+ARG BUN_VERSION=1.3.10
+ARG BUN_SHA256_X64=f57bc0187e39623de716ba3a389fda5486b2d7be7131a980ba54dc7b733d2e08
+ARG BUN_SHA256_ARM64=fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55636d3
+RUN ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+        BUN_ARCH="x64"; BUN_SHA256="${BUN_SHA256_X64}"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        BUN_ARCH="aarch64"; BUN_SHA256="${BUN_SHA256_ARM64}"; \
+    else echo "Unsupported architecture: $ARCH" >&2; exit 1; fi \
+    && curl -fsSL -o /tmp/bun.zip \
+        "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-${BUN_ARCH}.zip" \
+    && echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c - \
+    && mkdir -p /home/node/.bun/bin \
+    && unzip -j /tmp/bun.zip "*/bun" -d /home/node/.bun/bin \
+    && test -f /home/node/.bun/bin/bun \
+    && chmod 755 /home/node/.bun/bin/bun \
+    && rm -f /tmp/bun.zip
 
 RUN git config --global core.excludesfile ~/.gitignore_global && \
     echo ".claude/settings.local.json" > /home/node/.gitignore_global
 
-RUN curl -fsSL https://claude.ai/install.sh | bash
+ARG CLAUDE_VERSION=2.1.76
+ARG CLAUDE_SHA256_X64=801a085676c3d54392c42e8e43c44947df7c52132356575f7d9267c4f22d6992
+ARG CLAUDE_SHA256_ARM64=40f753c07f070df34ca83e400f746a8279a3fd343967a453d9fbfab2f3ca7acd
+RUN ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+        CLAUDE_ARCH="x64"; CLAUDE_SHA256="${CLAUDE_SHA256_X64}"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        CLAUDE_ARCH="arm64"; CLAUDE_SHA256="${CLAUDE_SHA256_ARM64}"; \
+    else echo "Unsupported architecture: $ARCH" >&2; exit 1; fi \
+    && curl -fsSL -o /tmp/claude \
+        "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/${CLAUDE_VERSION}/linux-${CLAUDE_ARCH}/claude" \
+    && echo "${CLAUDE_SHA256}  /tmp/claude" | sha256sum -c - \
+    && install -m 755 /tmp/claude /home/node/.local/bin/claude \
+    && rm /tmp/claude
 
 USER root
 
