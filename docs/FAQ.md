@@ -80,6 +80,43 @@ claudeup profile create blank
 claudeup-lab start --profile blank --project ~/code/myproject
 ```
 
+## What's the difference between --profile and --base-profile?
+
+They control which profiles get applied and at which Claude Code scope.
+
+**`--profile` only:**
+
+```bash
+claudeup-lab start --profile base --project ~/code/myproject
+```
+
+No snapshot is taken. The `base` profile is applied at user scope (`~/.claude/settings.json`). Nothing is written to project scope.
+
+**`--base-profile` only (no `--profile`):**
+
+```bash
+claudeup-lab start --base-profile base --project ~/code/myproject
+```
+
+Your current claudeup config is snapshotted as the main profile. The entrypoint applies `base` at user scope (`~/.claude/settings.json`), then applies the snapshot at project scope (`<project>/.claude/settings.json`). Because these are separate scopes writing to separate files, the snapshot does not overwrite the base -- both are active. Claude Code merges settings across scopes at runtime, with project scope taking precedence over user scope for conflicting keys.
+
+**Both flags together:**
+
+```bash
+claudeup-lab start --base-profile base --profile solo-test --project ~/code/myproject
+```
+
+No snapshot is taken. `base` is applied at user scope, `solo-test` at project scope. This gives you a foundation layer with targeted overrides on top.
+
+**Summary:**
+
+| Flags                                | Snapshot? | User scope                 | Project scope              |
+| ------------------------------------ | --------- | -------------------------- | -------------------------- |
+| `--profile base`                     | No        | `base`                     | (empty)                    |
+| `--base-profile base`                | Yes       | `base`                     | snapshot of current config |
+| `--base-profile base --profile solo` | No        | `base`                     | `solo`                     |
+| (neither)                            | Yes       | snapshot of current config | (empty)                    |
+
 ## What's the difference between stop and rm?
 
 `stop` halts the container but preserves it along with all Docker volumes and the git worktree. Restarting a stopped lab is fast because nothing needs to be recreated.
