@@ -4,7 +4,7 @@ Ephemeral devcontainer environments for testing Claude Code configurations.
 
 Start a lab, experiment with plugins, skills, agents, and hooks, destroy it when you're done. Your host configuration stays untouched.
 
-> See the [design document](docs/plans/2026-02-10-claudeup-lab-design.md) for architecture details.
+See [Architecture](docs/ARCHITECTURE.md) for how it works under the hood, or the [FAQ](docs/FAQ.md) for common questions.
 
 ## What is this?
 
