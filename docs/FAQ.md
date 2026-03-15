@@ -77,11 +77,31 @@ Two ways:
 
 ## I want to try a new plugin without interference from other plugins. Do I need a new profile?
 
-Yes, but it's quick. Create a profile that only includes the plugin you want to test, then start a lab with it:
+Yes, but it's quick. You can create a profile that only includes the plugin you want to test, then start a lab with it.
+
+For Claude plugins (from the marketplace), create a profile with the plugin included:
+
+```bash
+claudeup profile create solo-test \
+    --description "test a single plugin" \
+    --marketplace your-org/your-plugin \
+    --plugin "your-plugin@your-plugin-dev"
+claudeup-lab start --profile solo-test
+```
+
+Alternatively, you can start a lab with a bare config and install the plugin manually:
+
+```bash
+claudeup-lab start
+claude plugin marketplace add your-org/your-plugin
+claude plugin install your-plugin@your-plugin-dev
+```
+
+For claudeup extensions (skills, agents, hooks, rules, output-styles), use `claudeup ext enable`:
 
 ```bash
 claudeup profile create solo-test
-claudeup ext enable ...              # enable just the plugin you want
+claudeup ext enable skills my-skill
 claudeup profile save solo-test
 claudeup-lab start --profile solo-test
 ```
