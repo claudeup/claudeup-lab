@@ -41,7 +41,15 @@ USER node
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin:/home/node/.local/bin:/home/node/.bun/bin
 
-RUN curl -fsSL https://bun.sh/install | bash
+ARG BUN_VERSION=1.3.10
+ARG BUN_SHA256=f57bc0187e39623de716ba3a389fda5486b2d7be7131a980ba54dc7b733d2e08
+RUN curl -fsSL -o /tmp/bun.zip \
+        "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/bun-linux-x64.zip" \
+    && echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c - \
+    && mkdir -p /home/node/.bun/bin \
+    && unzip -j /tmp/bun.zip "*/bun" -d /home/node/.bun/bin \
+    && chmod 755 /home/node/.bun/bin/bun \
+    && rm -f /tmp/bun.zip
 
 RUN git config --global core.excludesfile ~/.gitignore_global && \
     echo ".claude/settings.local.json" > /home/node/.gitignore_global
