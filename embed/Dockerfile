@@ -54,7 +54,13 @@ RUN curl -fsSL -o /tmp/bun.zip \
 RUN git config --global core.excludesfile ~/.gitignore_global && \
     echo ".claude/settings.local.json" > /home/node/.gitignore_global
 
-RUN curl -fsSL https://claude.ai/install.sh | bash
+ARG CLAUDE_VERSION=2.1.76
+ARG CLAUDE_SHA256=801a085676c3d54392c42e8e43c44947df7c52132356575f7d9267c4f22d6992
+RUN curl -fsSL -o /tmp/claude \
+        "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/${CLAUDE_VERSION}/linux-x64/claude" \
+    && echo "${CLAUDE_SHA256}  /tmp/claude" | sha256sum -c - \
+    && install -m 755 /tmp/claude /home/node/.local/bin/claude \
+    && rm /tmp/claude
 
 USER root
 
