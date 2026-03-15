@@ -55,7 +55,7 @@ One-liner per domain object:
 
 - Manager -- orchestrates lab lifecycle (start, remove, status)
 - Metadata -- identity and paths for a single lab
-- Resolver -- fuzzy lab lookup (UUID, display name, prefix, project, profile, CWD)
+- Resolver -- fuzzy lab lookup (UUID, display name, prefix, project, profile, or current working directory)
 - WorktreeManager -- bare clone creation/refresh, git worktree ops, branch collision handling
 - ProfileManager -- snapshots current config when no profile specified
 - DevcontainerConfig -- renders devcontainer.json with mounts, env vars, features
@@ -103,7 +103,7 @@ Short list of non-obvious choices with rationale:
 - Bare clone per project (avoids re-cloning; worktrees branch cheaply; hash suffix for collisions)
 - UUID-scoped Docker volumes (parallel lab isolation)
 - Optional mounts with existence checks (graceful degradation for missing host paths)
-- Profile snapshotting (point-in-time copy when no --profile; falls back to empty `{}`)
+- Profile snapshotting (point-in-time copy when no --profile; falls back to empty `{}` if the `claudeup` CLI is unavailable)
 - Image pull with build fallback (GHCR first, embedded Dockerfile if unreachable)
 - Fuzzy lab resolution (cascading lookup so users don't need UUIDs)
 
@@ -147,8 +147,8 @@ default from the registry is used. Unknown feature names are silently ignored.
 
 ### 4. What's the difference between stop and rm?
 
-`stop` halts the container but preserves all Docker volumes and the git worktree.
-Restarting is fast because nothing needs to be recreated.
+`stop` halts the container but preserves it along with all Docker volumes and the
+git worktree. Restarting is fast because nothing needs to be recreated.
 
 `rm` destroys everything: container, all Docker volumes, the git worktree, and the
 metadata file. The bare clone is kept (it's shared with other labs of the same project).
