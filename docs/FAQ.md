@@ -54,6 +54,69 @@ Without a version, the default from the registry is used. Unknown feature names 
 
 The bare repo clone is always mounted at its host path so that git worktree resolution works inside the container.
 
+## Does my host ~/.claude directory get carried into the container?
+
+No. The container's `~/.claude` is a fresh Docker volume (`claudeup-lab-config-{id}`), not a bind mount of your host directory. Your host `~/.claude` is never mounted into the container.
+
+What does get carried in from the host (each is a conditional bind mount, only added if the source exists):
+
+- `~/.claudeup/profiles` (readonly) -- so named and snapshot profiles are available for the entrypoint to apply
+- `~/.claudeup/ext` (readonly) -- your extensions
+- `~/.claude/settings.json` -- mounted to `/tmp/base-settings.json`, not directly into `~/.claude`
+- `~/.claude.json` -- your credentials
+- `~/.ssh` (readonly)
+- `~/.claude-mem` (read-write)
+
+When you omit `--profile`, `claudeup-lab` runs `claudeup profile save` to snapshot your current claudeup-managed config into a profile file. That snapshot is available inside the container via the profiles bind mount, and the entrypoint applies it using the `CLAUDE_PROFILE` env var. This is not the same as mounting your `~/.claude` directory -- it captures the profile state, not the full directory contents.
+
+To start a lab without any of your current config, pass an explicit `--profile`:
+
+```bash
+# Use a specific named profile (no snapshot taken)
+claudeup-lab start --profile minimal --project ~/code/myproject
+
+# Or create an empty profile first
+claudeup profile create blank
+claudeup-lab start --profile blank --project ~/code/myproject
+```
+
+## What's the difference between --profile and --base-profile?
+
+They control which profiles get applied and at which Claude Code scope.
+
+**`--profile` only:**
+
+```bash
+claudeup-lab start --profile base --project ~/code/myproject
+```
+
+No snapshot is taken. The `base` profile is applied at user scope (`~/.claude/settings.json`). Nothing is written to project scope.
+
+**`--base-profile` only (no `--profile`):**
+
+```bash
+claudeup-lab start --base-profile base --project ~/code/myproject
+```
+
+Your current claudeup config is snapshotted as the main profile. The entrypoint applies `base` at user scope (`~/.claude/settings.json`), then applies the snapshot at project scope (`<project>/.claude/settings.json`). Because these are separate scopes writing to separate files, the snapshot does not overwrite the base -- both are active. Claude Code merges settings across scopes at runtime, with project scope taking precedence over user scope for conflicting keys.
+
+**Both flags together:**
+
+```bash
+claudeup-lab start --base-profile base --profile solo-test --project ~/code/myproject
+```
+
+No snapshot is taken. `base` is applied at user scope, `solo-test` at project scope. This gives you a foundation layer with targeted overrides on top.
+
+**Summary:**
+
+| Flags                                | Snapshot? | User scope                 | Project scope              |
+| ------------------------------------ | --------- | -------------------------- | -------------------------- |
+| `--profile base`                     | No        | `base`                     | (empty)                    |
+| `--base-profile base`                | Yes       | `base`                     | snapshot of current config |
+| `--base-profile base --profile solo` | No        | `base`                     | `solo`                     |
+| (neither)                            | Yes       | snapshot of current config | (empty)                    |
+
 ## What's the difference between stop and rm?
 
 `stop` halts the container but preserves it along with all Docker volumes and the git worktree. Restarting a stopped lab is fast because nothing needs to be recreated.
@@ -77,11 +140,31 @@ Two ways:
 
 ## I want to try a new plugin without interference from other plugins. Do I need a new profile?
 
-Yes, but it's quick. Create a profile that only includes the plugin you want to test, then start a lab with it:
+Yes, but it's quick. You can create a profile that only includes the plugin you want to test, then start a lab with it.
+
+For Claude plugins (from the marketplace), create a profile with the plugin included:
+
+```bash
+claudeup profile create solo-test \
+    --description "test a single plugin" \
+    --marketplace your-org/your-plugin \
+    --plugin "your-plugin@your-plugin-dev"
+claudeup-lab start --profile solo-test
+```
+
+Alternatively, you can start a lab with a bare config and install the plugin manually:
+
+```bash
+claudeup-lab start
+claude plugin marketplace add your-org/your-plugin
+claude plugin install your-plugin@your-plugin-dev
+```
+
+For claudeup extensions (skills, agents, hooks, rules, output-styles), use `claudeup ext enable`:
 
 ```bash
 claudeup profile create solo-test
-claudeup ext enable ...              # enable just the plugin you want
+claudeup ext enable skills my-skill
 claudeup profile save solo-test
 claudeup-lab start --profile solo-test
 ```
