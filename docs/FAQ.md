@@ -54,6 +54,32 @@ Without a version, the default from the registry is used. Unknown feature names 
 
 The bare repo clone is always mounted at its host path so that git worktree resolution works inside the container.
 
+## Does my host ~/.claude directory get carried into the container?
+
+No. The container's `~/.claude` is a fresh Docker volume (`claudeup-lab-config-{id}`), not a bind mount of your host directory. Your host `~/.claude` is never mounted into the container.
+
+What does get carried in from the host:
+
+- `~/.claudeup/profiles` (readonly) -- so named and snapshot profiles are available for the entrypoint to apply
+- `~/.claudeup/ext` (readonly) -- your extensions
+- `~/.claude/settings.json` -- mounted to `/tmp/base-settings.json`, not directly into `~/.claude`
+- `~/.claude.json` -- your credentials
+- `~/.ssh` (readonly)
+- `~/.claude-mem` (read-write)
+
+When you omit `--profile`, `claudeup-lab` runs `claudeup profile save` to snapshot your current claudeup-managed config into a profile file. That snapshot is available inside the container via the profiles bind mount, and the entrypoint applies it using the `CLAUDE_PROFILE` env var. This is not the same as mounting your `~/.claude` directory -- it captures the profile state, not the full directory contents.
+
+To start a lab without any of your current config, pass an explicit `--profile`:
+
+```bash
+# Use a specific named profile (no snapshot taken)
+claudeup-lab start --profile minimal --project ~/code/myproject
+
+# Or create an empty profile first
+claudeup profile create blank
+claudeup-lab start --profile blank --project ~/code/myproject
+```
+
 ## What's the difference between stop and rm?
 
 `stop` halts the container but preserves it along with all Docker volumes and the git worktree. Restarting a stopped lab is fast because nothing needs to be recreated.
