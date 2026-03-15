@@ -109,7 +109,7 @@ Short list of non-obvious choices with rationale:
 
 ## docs/FAQ.md
 
-Seven questions:
+Eight questions:
 
 ### 1. What happens when I specify a profile that doesn't exist?
 
@@ -173,6 +173,31 @@ Two ways:
 - The git worktree lives on the host at `~/.claudeup-lab/workspaces/<name>/`, so
   changes are directly accessible from the host filesystem
 - From inside the container, `git push` works if SSH keys or tokens are mounted
+
+### 8. I want to try a new plugin without interference from other plugins. Do I need a new profile?
+
+Yes, but it's quick. Create a profile that only includes the plugin you want to test,
+then start a lab with it:
+
+```bash
+claudeup profile create solo-test    # create a minimal profile
+claudeup ext enable ...              # enable just the plugin you want
+claudeup profile save solo-test      # save it
+claudeup-lab start --profile solo-test
+```
+
+Each lab starts with a fresh `~/.claude` volume, so only the extensions from the
+specified profile get applied. Without `--profile`, a lab snapshots your current
+config -- which includes all your existing plugins.
+
+If you want to test a plugin layered on top of a base config, use `--base-profile`:
+
+```bash
+claudeup-lab start --base-profile default --profile solo-test
+```
+
+This applies `default` at user scope, then `solo-test` at project scope, so you get
+your foundation settings plus just the plugin under test.
 
 ## README Changes
 
