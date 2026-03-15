@@ -91,7 +91,7 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		"mounts":            mounts,
 		"containerEnv":      env,
 		"workspaceFolder":   fmt.Sprintf("/workspaces/%s", config.DisplayName),
-		"postCreateCommand": "claude upgrade && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
+		"postCreateCommand": "(claude upgrade 2>/dev/null || true) && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
 		"waitFor":           "postCreateCommand",
 		"customizations": map[string]interface{}{
 			"vscode": map[string]interface{}{
