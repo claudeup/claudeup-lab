@@ -2,7 +2,7 @@
 
 ## Problem
 
-The embedded Dockerfile fetches and runs remote install scripts for Bun and Claude CLI without version pinning or checksum verification (`embed/Dockerfile` lines 44, 49). This makes builds non-reproducible and carries supply-chain risk from unverified binaries.
+The embedded Dockerfile fetches and runs remote install scripts for Bun and Claude CLI without version pinning or checksum verification. This makes builds non-reproducible and carries supply-chain risk from unverified binaries.
 
 ## Decision
 
@@ -44,9 +44,9 @@ The `ARG` declarations go immediately before their corresponding `RUN` layer, af
 
 ## Scope
 
-- **Changed file**: `embed/Dockerfile` only
+- **Code change**: `embed/Dockerfile` only
 - **No Go code changes**: The Dockerfile is a static embedded asset; `buildFallback()` in `image.go` does not pass `--build-arg` flags and does not need to
-- **No new files**: No helper scripts or verification utilities
+- **No new helper scripts or verification utilities**
 
 ## Version Selection
 

@@ -47,7 +47,7 @@ ARG BUN_SHA256_ARM64=fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55
 RUN ARCH=$(uname -m) \
     && if [ "$ARCH" = "x86_64" ]; then \
         BUN_ARCH="x64"; BUN_SHA256="${BUN_SHA256_X64}"; \
-    elif [ "$ARCH" = "aarch64" ]; then \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
         BUN_ARCH="aarch64"; BUN_SHA256="${BUN_SHA256_ARM64}"; \
     else echo "Unsupported architecture: $ARCH" >&2; exit 1; fi \
     && curl -fsSL -o /tmp/bun.zip \
@@ -68,7 +68,7 @@ ARG CLAUDE_SHA256_ARM64=40f753c07f070df34ca83e400f746a8279a3fd343967a453d9fbfab2
 RUN ARCH=$(uname -m) \
     && if [ "$ARCH" = "x86_64" ]; then \
         CLAUDE_ARCH="x64"; CLAUDE_SHA256="${CLAUDE_SHA256_X64}"; \
-    elif [ "$ARCH" = "aarch64" ]; then \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
         CLAUDE_ARCH="arm64"; CLAUDE_SHA256="${CLAUDE_SHA256_ARM64}"; \
     else echo "Unsupported architecture: $ARCH" >&2; exit 1; fi \
     && curl -fsSL -o /tmp/claude \
