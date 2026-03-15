@@ -55,6 +55,7 @@ RUN ARCH=$(uname -m) \
     && echo "${BUN_SHA256}  /tmp/bun.zip" | sha256sum -c - \
     && mkdir -p /home/node/.bun/bin \
     && unzip -j /tmp/bun.zip "*/bun" -d /home/node/.bun/bin \
+    && test -f /home/node/.bun/bin/bun \
     && chmod 755 /home/node/.bun/bin/bun \
     && rm -f /tmp/bun.zip
 
