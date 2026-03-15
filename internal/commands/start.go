@@ -55,6 +55,7 @@ func newStartCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Display name for the lab")
 	cmd.Flags().StringSliceVar(&features, "feature", nil, "Devcontainer feature (repeatable, e.g. go:1.23)")
 	cmd.Flags().StringVar(&opts.BaseProfile, "base-profile", "", "Apply base profile before main profile")
+	cmd.Flags().BoolVar(&opts.Firewall, "firewall", false, "Enable container firewall restricting network to allowed services")
 
 	return cmd
 }

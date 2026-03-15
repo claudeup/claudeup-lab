@@ -28,6 +28,7 @@ type DevcontainerConfig struct {
 	ConfigBranch string
 	BaseProfile  string
 	Features     []string
+	Firewall     bool
 }
 
 type featureEntry struct {
@@ -53,6 +54,13 @@ func RenderDevcontainer(config *DevcontainerConfig, worktreePath string) error {
 	outPath := filepath.Join(dcDir, "devcontainer.json")
 	if err := os.WriteFile(outPath, data, 0o644); err != nil {
 		return fmt.Errorf("write devcontainer.json: %w", err)
+	}
+
+	if config.Firewall {
+		fwPath := filepath.Join(dcDir, "init-firewall.sh")
+		if err := os.WriteFile(fwPath, assets.InitFirewall, 0o755); err != nil {
+			return fmt.Errorf("write init-firewall.sh: %w", err)
+		}
 	}
 
 	return nil
@@ -85,6 +93,16 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		"workspaceFolder":   fmt.Sprintf("/workspaces/%s", config.DisplayName),
 		"postCreateCommand": "claude upgrade && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
 		"waitFor":           "postCreateCommand",
+		"customizations": map[string]interface{}{
+			"vscode": map[string]interface{}{
+				"extensions": []string{"anthropic.claude-code"},
+			},
+		},
+	}
+
+	if config.Firewall {
+		dc["runArgs"] = []string{"--cap-add=NET_ADMIN", "--cap-add=NET_RAW"}
+		dc["postStartCommand"] = "sudo cp .devcontainer/init-firewall.sh /usr/local/bin/init-firewall.sh && sudo /usr/local/bin/init-firewall.sh"
 	}
 
 	return dc

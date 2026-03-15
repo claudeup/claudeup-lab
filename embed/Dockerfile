@@ -9,12 +9,13 @@ ENV TZ="$TZ"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates gnupg2 \
     git git-lfs gh \
-    procps htop \
+    procps htop sudo \
     jq yq \
     ripgrep fd-find \
     build-essential make \
     python3 \
     nano vim unzip \
+    iptables ipset iproute2 dnsutils aggregate \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
@@ -82,5 +83,9 @@ USER root
 COPY --chmod=755 init-claude-config.sh /usr/local/bin/
 COPY --chmod=755 init-config-repo.sh /usr/local/bin/
 COPY --chmod=755 init-claudeup.sh /usr/local/bin/
+
+# Allow node user to run firewall init without password (used when --firewall is enabled)
+RUN echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+    chmod 0440 /etc/sudoers.d/node-firewall
 
 USER node

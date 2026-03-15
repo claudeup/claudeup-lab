@@ -45,6 +45,7 @@ type StartOptions struct {
 	Name        string
 	Features    []string
 	BaseProfile string
+	Firewall    bool
 }
 
 // Start creates and launches a new lab environment.
@@ -136,6 +137,7 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		ConfigBranch: envOrDefault("CLAUDE_CONFIG_BRANCH", "main"),
 		BaseProfile:  opts.BaseProfile,
 		Features:     opts.Features,
+		Firewall:     opts.Firewall,
 	}
 	if err := RenderDevcontainer(dcConfig, worktreePath); err != nil {
 		m.worktrees.RemoveWorktree(barePath, worktreePath)
