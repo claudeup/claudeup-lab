@@ -183,6 +183,176 @@ func TestClaudeupHomeHelper(t *testing.T) {
 	})
 }
 
+func TestVSCodeCustomizations(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	customizations, ok := parsed["customizations"].(map[string]interface{})
+	if !ok {
+		t.Fatal("devcontainer.json should have a 'customizations' key")
+	}
+
+	vscode, ok := customizations["vscode"].(map[string]interface{})
+	if !ok {
+		t.Fatal("customizations should have a 'vscode' key")
+	}
+
+	t.Run("extensions", func(t *testing.T) {
+		extensions, ok := vscode["extensions"].([]interface{})
+		if !ok {
+			t.Fatal("vscode customizations should have an 'extensions' array")
+		}
+
+		want := []string{
+			"anthropic.claude-code",
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode",
+			"eamodio.gitlens",
+		}
+
+		extSet := make(map[string]bool)
+		for _, ext := range extensions {
+			extSet[ext.(string)] = true
+		}
+
+		for _, w := range want {
+			if !extSet[w] {
+				t.Errorf("extensions should include %q, got: %v", w, extensions)
+			}
+		}
+	})
+
+	t.Run("settings", func(t *testing.T) {
+		settings, ok := vscode["settings"].(map[string]interface{})
+		if !ok {
+			t.Fatal("vscode customizations should have a 'settings' map")
+		}
+
+		defaultProfile, ok := settings["terminal.integrated.defaultProfile.linux"].(string)
+		if !ok || defaultProfile != "zsh" {
+			t.Errorf("default terminal profile should be 'zsh', got: %v", settings["terminal.integrated.defaultProfile.linux"])
+		}
+	})
+}
+
+func TestFirewallEnabled(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		Firewall:     true,
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	// runArgs should include NET_ADMIN and NET_RAW capabilities
+	runArgs, ok := parsed["runArgs"].([]interface{})
+	if !ok {
+		t.Fatal("devcontainer.json should have 'runArgs' when firewall is enabled")
+	}
+	hasNetAdmin := false
+	hasNetRaw := false
+	for _, arg := range runArgs {
+		switch arg {
+		case "--cap-add=NET_ADMIN":
+			hasNetAdmin = true
+		case "--cap-add=NET_RAW":
+			hasNetRaw = true
+		}
+	}
+	if !hasNetAdmin {
+		t.Error("runArgs should include --cap-add=NET_ADMIN")
+	}
+	if !hasNetRaw {
+		t.Error("runArgs should include --cap-add=NET_RAW")
+	}
+
+	// postStartCommand should run the firewall script
+	postStart, ok := parsed["postStartCommand"].(string)
+	if !ok {
+		t.Fatal("devcontainer.json should have 'postStartCommand' when firewall is enabled")
+	}
+	if !strings.Contains(postStart, "init-firewall.sh") {
+		t.Errorf("postStartCommand should reference init-firewall.sh, got: %s", postStart)
+	}
+
+}
+
+func TestFirewallDisabledByDefault(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+	content := string(data)
+
+	if strings.Contains(content, "runArgs") {
+		t.Error("devcontainer.json should not have runArgs when firewall is disabled")
+	}
+	if strings.Contains(content, "postStartCommand") {
+		t.Error("devcontainer.json should not have postStartCommand when firewall is disabled")
+	}
+}
+
 func TestFeatureInjection(t *testing.T) {
 	dir := t.TempDir()
 

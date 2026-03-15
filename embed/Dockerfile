@@ -9,12 +9,14 @@ ENV TZ="$TZ"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates gnupg2 \
     git git-lfs gh \
-    procps htop \
+    procps htop sudo less man-db \
     jq yq \
-    ripgrep fd-find \
+    ripgrep fd-find fzf \
     build-essential make \
     python3 \
     nano vim unzip \
+    zsh \
+    iptables ipset iproute2 dnsutils aggregate \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
@@ -35,11 +37,29 @@ RUN mkdir -p /home/node/.config/gh /home/node/.claude \
     /home/node/.aws /home/node/.local/bin && \
     chown -R node:node /home/node
 
+ARG GIT_DELTA_VERSION=0.18.2
+RUN ARCH=$(dpkg --print-architecture) && \
+    wget -q "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" -O /tmp/git-delta.deb && \
+    dpkg -i /tmp/git-delta.deb && \
+    rm /tmp/git-delta.deb
+
 WORKDIR /workspaces
 USER node
 
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin:/home/node/.local/bin:/home/node/.bun/bin
+ENV SHELL=/bin/zsh
+ENV EDITOR=nano
+ENV VISUAL=nano
+
+ARG ZSH_IN_DOCKER_VERSION=1.2.0
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
+    -p git \
+    -p fzf \
+    -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
+    -a "source /usr/share/doc/fzf/examples/completion.zsh" \
+    -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+    -x
 
 ARG BUN_VERSION=1.3.10
 ARG BUN_SHA256_X64=f57bc0187e39623de716ba3a389fda5486b2d7be7131a980ba54dc7b733d2e08
@@ -82,5 +102,10 @@ USER root
 COPY --chmod=755 init-claude-config.sh /usr/local/bin/
 COPY --chmod=755 init-config-repo.sh /usr/local/bin/
 COPY --chmod=755 init-claudeup.sh /usr/local/bin/
+COPY --chmod=755 init-firewall.sh /usr/local/bin/
+
+# Allow node user to run firewall init without password (used when --firewall is enabled)
+RUN echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+    chmod 0440 /etc/sudoers.d/node-firewall
 
 USER node

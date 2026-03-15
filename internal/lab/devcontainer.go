@@ -28,6 +28,7 @@ type DevcontainerConfig struct {
 	ConfigBranch string
 	BaseProfile  string
 	Features     []string
+	Firewall     bool
 }
 
 type featureEntry struct {
@@ -83,8 +84,40 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		"mounts":            mounts,
 		"containerEnv":      env,
 		"workspaceFolder":   fmt.Sprintf("/workspaces/%s", config.DisplayName),
-		"postCreateCommand": "claude upgrade && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
+		"postCreateCommand": "(claude upgrade 2>/dev/null || true) && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
 		"waitFor":           "postCreateCommand",
+		"customizations": map[string]interface{}{
+			"vscode": map[string]interface{}{
+				"extensions": []string{
+					"anthropic.claude-code",
+					"dbaeumer.vscode-eslint",
+					"esbenp.prettier-vscode",
+					"eamodio.gitlens",
+				},
+				"settings": map[string]interface{}{
+					"editor.formatOnSave":     true,
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.codeActionsOnSave": map[string]string{
+						"source.fixAll.eslint": "explicit",
+					},
+					"terminal.integrated.defaultProfile.linux": "zsh",
+					"terminal.integrated.profiles.linux": map[string]interface{}{
+						"bash": map[string]string{
+							"path": "bash",
+							"icon": "terminal-bash",
+						},
+						"zsh": map[string]string{
+							"path": "zsh",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if config.Firewall {
+		dc["runArgs"] = []string{"--cap-add=NET_ADMIN", "--cap-add=NET_RAW"}
+		dc["postStartCommand"] = "sudo /usr/local/bin/init-firewall.sh"
 	}
 
 	return dc
