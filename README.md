@@ -4,6 +4,8 @@ Ephemeral devcontainer environments for testing Claude Code configurations.
 
 Start a lab, experiment with plugins, skills, agents, and hooks, destroy it when you're done. Your host configuration stays untouched.
 
+See [Architecture](docs/ARCHITECTURE.md) for how it works under the hood, or the [FAQ](docs/FAQ.md) for common questions.
+
 ## What is this?
 
 claudeup-lab creates isolated Docker containers pre-loaded with Claude Code and a [claudeup](https://github.com/claudeup/claudeup) profile of your choice. Each lab gets its own git worktree, its own Claude configuration, and its own set of extensions -- completely separate from your host.
