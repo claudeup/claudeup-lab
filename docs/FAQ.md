@@ -58,7 +58,7 @@ The bare repo clone is always mounted at its host path so that git worktree reso
 
 No. The container's `~/.claude` is a fresh Docker volume (`claudeup-lab-config-{id}`), not a bind mount of your host directory. Your host `~/.claude` is never mounted into the container.
 
-What does get carried in from the host:
+What does get carried in from the host (each is a conditional bind mount, only added if the source exists):
 
 - `~/.claudeup/profiles` (readonly) -- so named and snapshot profiles are available for the entrypoint to apply
 - `~/.claudeup/ext` (readonly) -- your extensions
