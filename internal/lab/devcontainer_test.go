@@ -183,7 +183,7 @@ func TestClaudeupHomeHelper(t *testing.T) {
 	})
 }
 
-func TestClaudeCodeExtensionIncluded(t *testing.T) {
+func TestVSCodeCustomizations(t *testing.T) {
 	dir := t.TempDir()
 
 	config := &lab.DevcontainerConfig{
@@ -222,21 +222,42 @@ func TestClaudeCodeExtensionIncluded(t *testing.T) {
 		t.Fatal("customizations should have a 'vscode' key")
 	}
 
-	extensions, ok := vscode["extensions"].([]interface{})
-	if !ok {
-		t.Fatal("vscode customizations should have an 'extensions' array")
-	}
-
-	found := false
-	for _, ext := range extensions {
-		if ext == "anthropic.claude-code" {
-			found = true
-			break
+	t.Run("extensions", func(t *testing.T) {
+		extensions, ok := vscode["extensions"].([]interface{})
+		if !ok {
+			t.Fatal("vscode customizations should have an 'extensions' array")
 		}
-	}
-	if !found {
-		t.Errorf("extensions should include 'anthropic.claude-code', got: %v", extensions)
-	}
+
+		want := []string{
+			"anthropic.claude-code",
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode",
+			"eamodio.gitlens",
+		}
+
+		extSet := make(map[string]bool)
+		for _, ext := range extensions {
+			extSet[ext.(string)] = true
+		}
+
+		for _, w := range want {
+			if !extSet[w] {
+				t.Errorf("extensions should include %q, got: %v", w, extensions)
+			}
+		}
+	})
+
+	t.Run("settings", func(t *testing.T) {
+		settings, ok := vscode["settings"].(map[string]interface{})
+		if !ok {
+			t.Fatal("vscode customizations should have a 'settings' map")
+		}
+
+		defaultProfile, ok := settings["terminal.integrated.defaultProfile.linux"].(string)
+		if !ok || defaultProfile != "zsh" {
+			t.Errorf("default terminal profile should be 'zsh', got: %v", settings["terminal.integrated.defaultProfile.linux"])
+		}
+	})
 }
 
 func TestFirewallEnabled(t *testing.T) {

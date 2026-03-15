@@ -95,7 +95,29 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		"waitFor":           "postCreateCommand",
 		"customizations": map[string]interface{}{
 			"vscode": map[string]interface{}{
-				"extensions": []string{"anthropic.claude-code"},
+				"extensions": []string{
+					"anthropic.claude-code",
+					"dbaeumer.vscode-eslint",
+					"esbenp.prettier-vscode",
+					"eamodio.gitlens",
+				},
+				"settings": map[string]interface{}{
+					"editor.formatOnSave":     true,
+					"editor.defaultFormatter": "esbenp.prettier-vscode",
+					"editor.codeActionsOnSave": map[string]string{
+						"source.fixAll.eslint": "explicit",
+					},
+					"terminal.integrated.defaultProfile.linux": "zsh",
+					"terminal.integrated.profiles.linux": map[string]interface{}{
+						"bash": map[string]string{
+							"path": "bash",
+							"icon": "terminal-bash",
+						},
+						"zsh": map[string]string{
+							"path": "zsh",
+						},
+					},
+				},
 			},
 		},
 	}
