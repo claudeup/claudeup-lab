@@ -41,14 +41,13 @@ Without a version, the default from the registry is used. Unknown feature names 
 
 **Conditional bind mounts (only added if the source exists on the host):**
 
-| Source                  | Container Path          | Access     |
-| ----------------------- | ----------------------- | ---------- |
-| ~/.claudeup/profiles    | ~/.claudeup/profiles    | readonly   |
-| ~/.claudeup/ext         | ~/.claudeup/ext         | readonly   |
-| ~/.claude-mem           | ~/.claude-mem           | read-write |
-| ~/.ssh                  | ~/.ssh                  | readonly   |
-| ~/.claude/settings.json | /tmp/base-settings.json | readonly   |
-| ~/.claude.json          | ~/.claude.json          | read-write |
+| Source               | Container Path       | Access     |
+| -------------------- | -------------------- | ---------- |
+| ~/.claudeup/profiles | ~/.claudeup/profiles | readonly   |
+| ~/.claudeup/ext      | ~/.claudeup/ext      | readonly   |
+| ~/.claude-mem        | ~/.claude-mem        | read-write |
+| ~/.ssh               | ~/.ssh               | readonly   |
+| ~/.claude.json       | ~/.claude.json       | read-write |
 
 **Required bind mount:**
 
@@ -62,20 +61,34 @@ What does get carried in from the host (each is a conditional bind mount, only a
 
 - `~/.claudeup/profiles` (readonly) -- so named and snapshot profiles are available for the entrypoint to apply
 - `~/.claudeup/ext` (readonly) -- your extensions
-- `~/.claude/settings.json` -- mounted to `/tmp/base-settings.json`, not directly into `~/.claude`
 - `~/.claude.json` -- your credentials
 - `~/.ssh` (readonly)
 - `~/.claude-mem` (read-write)
 
-When you omit `--profile`, `claudeup-lab` runs `claudeup profile save` to snapshot your current claudeup-managed config into a profile file. That snapshot is available inside the container via the profiles bind mount, and the entrypoint applies it using the `CLAUDE_PROFILE` env var. This is not the same as mounting your `~/.claude` directory -- it captures the profile state, not the full directory contents.
+## What ends up in the container's ~/.claude directory?
 
-To start a lab without any of your current config, pass an explicit `--profile`:
+The container's `~/.claude` starts as an empty Docker volume. During the `postCreateCommand`, several init scripts populate it:
+
+1. **init-claude-config.sh** -- configures git identity (`GIT_USER_NAME`, `GIT_USER_EMAIL`), GitHub auth (`GITHUB_TOKEN`), and optionally clones a dotfiles repo (`DOTFILES_REPO`, `DOTFILES_BRANCH`)
+2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`.library/`, `CLAUDE.md`, `enabled.json`, `Makefile`)
+3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` at user or project scope, generates `enabled.json` from profile extension lists, and syncs extension symlinks
+
+When Claude Code launches for the first time, it reads this config and installs any marketplace plugins listed in `settings.json`. Plugins are downloaded fresh into the container -- they are not copied from the host.
+
+**Without `--profile`**: claudeup-lab snapshots your current host config via `claudeup profile save` before starting. The snapshot captures:
+
+- **Plugins** -- the list of enabled plugin names (e.g., `episodic-memory@superpowers-marketplace`), not plugin binaries or `node_modules`
+- **MCP servers** -- configured server names, commands, and args, with secret references (not secret values)
+- **Marketplaces** -- plugin marketplace sources referenced by your plugins
+- **Extensions** -- which agents, commands, skills, hooks, rules, and output-styles are enabled
+
+The snapshot does **not** capture conversation history, project-specific state, or the full contents of `~/.claude/settings.json`. When the profile is applied inside the container, Claude Code downloads any marketplace plugins fresh -- they are not copied from the host.
+
+**With `--profile`**: only the named profile is applied. No snapshot of your current config is taken.
+
+To start a lab with no inherited config at all, create and use an empty profile:
 
 ```bash
-# Use a specific named profile (no snapshot taken)
-claudeup-lab start --profile minimal --project ~/code/myproject
-
-# Or create an empty profile first
 claudeup profile create blank
 claudeup-lab start --profile blank --project ~/code/myproject
 ```

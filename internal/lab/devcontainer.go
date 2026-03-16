@@ -67,13 +67,22 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		"CLAUDE_CONFIG_DIR":    "/home/node/.claude",
 		"CLAUDE_PROFILE":       config.Profile,
 		"NODE_OPTIONS":         "--max-old-space-size=4096",
-		"GIT_USER_NAME":        config.GitUserName,
-		"GIT_USER_EMAIL":       config.GitUserEmail,
-		"GITHUB_TOKEN":         config.GitHubToken,
-		"CONTEXT7_API_KEY":     config.Context7Key,
-		"CLAUDE_CONFIG_REPO":   config.ConfigRepo,
 		"CLAUDE_CONFIG_BRANCH": config.ConfigBranch,
-		"CLAUDE_BASE_PROFILE":  config.BaseProfile,
+	}
+
+	// Only include optional env vars that have values on the host
+	optional := map[string]string{
+		"GIT_USER_NAME":       config.GitUserName,
+		"GIT_USER_EMAIL":      config.GitUserEmail,
+		"GITHUB_TOKEN":        config.GitHubToken,
+		"CONTEXT7_API_KEY":    config.Context7Key,
+		"CLAUDE_CONFIG_REPO":  config.ConfigRepo,
+		"CLAUDE_BASE_PROFILE": config.BaseProfile,
+	}
+	for k, v := range optional {
+		if v != "" {
+			env[k] = v
+		}
 	}
 
 	dc := map[string]interface{}{
@@ -163,7 +172,6 @@ func buildMounts(config *DevcontainerConfig) []string {
 		{filepath.Join(cupHome, "ext"), "/home/node/.claudeup/ext", "type=bind,readonly"},
 		{filepath.Join(home, ".claude-mem"), "/home/node/.claude-mem", "type=bind"},
 		{filepath.Join(home, ".ssh"), "/home/node/.ssh", "type=bind,readonly"},
-		{filepath.Join(home, ".claude", "settings.json"), "/tmp/base-settings.json", "type=bind,readonly"},
 		{filepath.Join(home, ".claude.json"), "/home/node/.claude.json", "type=bind"},
 	}
 
