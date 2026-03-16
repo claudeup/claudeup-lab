@@ -80,16 +80,99 @@ func TestOptionalMountsSkipped(t *testing.T) {
 	if strings.Contains(content, ".claude-mem") {
 		t.Error("should skip .claude-mem mount when dir doesn't exist")
 	}
+}
 
-	// Empty env vars should be omitted
-	if strings.Contains(content, "GITHUB_TOKEN") {
-		t.Error("should omit GITHUB_TOKEN when empty")
+func TestOptionalEnvVarsOmittedWhenEmpty(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
 	}
-	if strings.Contains(content, "CONTEXT7_API_KEY") {
-		t.Error("should omit CONTEXT7_API_KEY when empty")
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
 	}
-	if strings.Contains(content, "CLAUDE_BASE_PROFILE") {
-		t.Error("should omit CLAUDE_BASE_PROFILE when empty")
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+
+	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
+	if !ok {
+		t.Fatal("containerEnv should be a map")
+	}
+
+	for _, key := range []string{"GITHUB_TOKEN", "CONTEXT7_API_KEY", "CLAUDE_BASE_PROFILE", "CLAUDE_CONFIG_REPO"} {
+		if _, exists := envRaw[key]; exists {
+			t.Errorf("containerEnv should omit %s when empty", key)
+		}
+	}
+
+	// Required vars should always be present
+	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CLAUDE_PROFILE", "NODE_OPTIONS", "CLAUDE_CONFIG_BRANCH"} {
+		if _, exists := envRaw[key]; !exists {
+			t.Errorf("containerEnv should always include %s", key)
+		}
+	}
+}
+
+func TestOptionalEnvVarsIncludedWhenSet(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		GitHubToken:  "ghp_test123",
+		Context7Key:  "ctx7_test",
+		BaseProfile:  "foundation",
+		ConfigRepo:   "acme-corp/claude-config",
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+
+	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
+	if !ok {
+		t.Fatal("containerEnv should be a map")
+	}
+
+	want := map[string]string{
+		"GITHUB_TOKEN":        "ghp_test123",
+		"CONTEXT7_API_KEY":    "ctx7_test",
+		"CLAUDE_BASE_PROFILE": "foundation",
+		"CLAUDE_CONFIG_REPO":  "acme-corp/claude-config",
+	}
+	for key, expected := range want {
+		val, exists := envRaw[key]
+		if !exists {
+			t.Errorf("containerEnv should include %s when set", key)
+			continue
+		}
+		if val != expected {
+			t.Errorf("containerEnv[%s] = %v, want %s", key, val, expected)
+		}
 	}
 }
 

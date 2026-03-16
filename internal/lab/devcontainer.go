@@ -64,20 +64,20 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 	features := buildFeatures(config.Features)
 
 	env := map[string]string{
-		"CLAUDE_CONFIG_DIR": "/home/node/.claude",
-		"CLAUDE_PROFILE":    config.Profile,
-		"NODE_OPTIONS":      "--max-old-space-size=4096",
+		"CLAUDE_CONFIG_DIR":    "/home/node/.claude",
+		"CLAUDE_PROFILE":       config.Profile,
+		"NODE_OPTIONS":         "--max-old-space-size=4096",
+		"CLAUDE_CONFIG_BRANCH": config.ConfigBranch,
 	}
 
 	// Only include optional env vars that have values on the host
 	optional := map[string]string{
-		"GIT_USER_NAME":        config.GitUserName,
-		"GIT_USER_EMAIL":       config.GitUserEmail,
-		"GITHUB_TOKEN":         config.GitHubToken,
-		"CONTEXT7_API_KEY":     config.Context7Key,
-		"CLAUDE_CONFIG_REPO":   config.ConfigRepo,
-		"CLAUDE_CONFIG_BRANCH": config.ConfigBranch,
-		"CLAUDE_BASE_PROFILE":  config.BaseProfile,
+		"GIT_USER_NAME":       config.GitUserName,
+		"GIT_USER_EMAIL":      config.GitUserEmail,
+		"GITHUB_TOKEN":        config.GitHubToken,
+		"CONTEXT7_API_KEY":    config.Context7Key,
+		"CLAUDE_CONFIG_REPO":  config.ConfigRepo,
+		"CLAUDE_BASE_PROFILE": config.BaseProfile,
 	}
 	for k, v := range optional {
 		if v != "" {

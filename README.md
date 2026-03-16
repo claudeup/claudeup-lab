@@ -86,20 +86,27 @@ claudeup-lab rm --lab myproject-experimental
 
 ### Environment variables
 
-The container receives environment variables from the host at creation time. Variables sourced from the host environment are only set if they have a value -- unset host variables are omitted from the container.
+The container receives environment variables from the host at creation time.
+
+**Always set:**
 
 | Variable               | Source                  | Purpose                                                             |
 | ---------------------- | ----------------------- | ------------------------------------------------------------------- |
 | `CLAUDE_CONFIG_DIR`    | Hardcoded               | Claude Code config path inside the container (`/home/node/.claude`) |
 | `CLAUDE_PROFILE`       | `--profile` flag        | Profile to apply during container initialization                    |
-| `CLAUDE_BASE_PROFILE`  | `--base-profile` flag   | Foundation profile applied before the main profile                  |
 | `NODE_OPTIONS`         | Hardcoded               | V8 memory limit for Claude Code (`--max-old-space-size=4096`)       |
-| `GIT_USER_NAME`        | `git config user.name`  | Git identity inside the container                                   |
-| `GIT_USER_EMAIL`       | `git config user.email` | Git identity inside the container                                   |
-| `GITHUB_TOKEN`         | `$GITHUB_TOKEN`         | GitHub API authentication for `gh` CLI and git operations           |
-| `CONTEXT7_API_KEY`     | `$CONTEXT7_API_KEY`     | API key for the Context7 MCP documentation server                   |
-| `CLAUDE_CONFIG_REPO`   | `$CLAUDE_CONFIG_REPO`   | Git repo to clone for shared Claude Code configuration              |
 | `CLAUDE_CONFIG_BRANCH` | `$CLAUDE_CONFIG_BRANCH` | Branch of the config repo to use (default: `main`)                  |
+
+**Conditional** (only set when the host value is non-empty):
+
+| Variable              | Source                  | Purpose                                                   |
+| --------------------- | ----------------------- | --------------------------------------------------------- |
+| `GIT_USER_NAME`       | `git config user.name`  | Git identity inside the container                         |
+| `GIT_USER_EMAIL`      | `git config user.email` | Git identity inside the container                         |
+| `GITHUB_TOKEN`        | `$GITHUB_TOKEN`         | GitHub API authentication for `gh` CLI and git operations |
+| `CONTEXT7_API_KEY`    | `$CONTEXT7_API_KEY`     | API key for the Context7 MCP documentation server         |
+| `CLAUDE_CONFIG_REPO`  | `$CLAUDE_CONFIG_REPO`   | Git repo to clone for shared Claude Code configuration    |
+| `CLAUDE_BASE_PROFILE` | `--base-profile` flag   | Foundation profile applied before the main profile        |
 
 The container's `~/.claude` starts as an empty Docker volume populated during init -- not a copy of your host directory. Without `--profile`, your current config is snapshotted and applied. With `--profile`, only the named profile is applied. See the [FAQ](docs/FAQ.md#what-ends-up-in-the-containers-claude-directory) for details.
 
