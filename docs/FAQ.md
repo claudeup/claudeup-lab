@@ -70,8 +70,8 @@ What does get carried in from the host (each is a conditional bind mount, only a
 The container's `~/.claude` starts as an empty Docker volume. During the `postCreateCommand`, several init scripts populate it:
 
 1. **init-claude-config.sh** -- configures git identity (`GIT_USER_NAME`, `GIT_USER_EMAIL`), GitHub auth (`GITHUB_TOKEN`), and optionally clones a dotfiles repo (`DOTFILES_REPO`, `DOTFILES_BRANCH`)
-2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`.library/`, `CLAUDE.md`, `enabled.json`, `Makefile`)
-3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` at user or project scope, generates `enabled.json` from profile extension lists, and syncs extension symlinks
+2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`CLAUDE.md`, `enabled.json`, `Makefile`)
+3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` -- either across all scopes for multi-scope profiles, or at user/project scope for single-scope profiles -- generates `enabled.json` from profile extension lists, and syncs extension symlinks
 
 When Claude Code launches for the first time, it reads this config and installs any marketplace plugins listed in `settings.json`. Plugins are downloaded fresh into the container -- they are not copied from the host.
 
@@ -109,7 +109,7 @@ The profile's `perScope.user` section is applied at user scope, `perScope.projec
 
 ### Single-scope profiles
 
-For profiles without `perScope` (legacy format), `--profile` and `--base-profile` control scope placement:
+For profiles without `perScope`, `--profile` and `--base-profile` control scope placement:
 
 **`--profile` only:**
 

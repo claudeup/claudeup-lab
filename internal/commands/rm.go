@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -45,15 +46,15 @@ func newRmCmd() *cobra.Command {
 	return cmd
 }
 
-func removeBareRepo(repo string, force bool) {
+func removeBareRepo(repo string, force bool) error {
 	fmt.Printf("\nBare repo %s has no remaining worktrees.\n", repo)
 	if force || confirm("Remove bare repo?") {
 		if err := os.RemoveAll(repo); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to remove bare repo %s: %v\n", repo, err)
-		} else {
-			fmt.Printf("Removed bare repo: %s\n", repo)
+			return fmt.Errorf("failed to remove bare repo %s: %w", repo, err)
 		}
+		fmt.Printf("Removed bare repo: %s\n", repo)
 	}
+	return nil
 }
 
 func shortID(id string) string {
@@ -81,8 +82,7 @@ func removeOne(mgr *lab.Manager, meta *lab.Metadata, force bool) error {
 
 	var prompt *lab.BareRepoCleanupPrompt
 	if errors.As(err, &prompt) {
-		removeBareRepo(prompt.BareRepo, force)
-		return nil
+		return removeBareRepo(prompt.BareRepo, force)
 	}
 
 	return err
@@ -112,6 +112,7 @@ func removeAll(mgr *lab.Manager, force bool) error {
 	}
 
 	removed := 0
+	seen := make(map[string]bool)
 	var bareRepos []string
 	var errs []string
 	for _, meta := range labs {
@@ -119,7 +120,10 @@ func removeAll(mgr *lab.Manager, force bool) error {
 
 		var prompt *lab.BareRepoCleanupPrompt
 		if errors.As(err, &prompt) {
-			bareRepos = append(bareRepos, prompt.BareRepo)
+			if !seen[prompt.BareRepo] {
+				seen[prompt.BareRepo] = true
+				bareRepos = append(bareRepos, prompt.BareRepo)
+			}
 		} else if err != nil {
 			errs = append(errs, fmt.Sprintf("%s: %v", meta.DisplayName, err))
 			continue
@@ -130,7 +134,9 @@ func removeAll(mgr *lab.Manager, force bool) error {
 	fmt.Printf("\nRemoved %d lab(s).\n", removed)
 
 	for _, repo := range bareRepos {
-		removeBareRepo(repo, force)
+		if err := removeBareRepo(repo, force); err != nil {
+			errs = append(errs, err.Error())
+		}
 	}
 
 	if len(errs) > 0 {
@@ -142,7 +148,13 @@ func removeAll(mgr *lab.Manager, force bool) error {
 func confirm(prompt string) bool {
 	fmt.Printf("%s [y/N] ", prompt)
 	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		if err == io.EOF {
+			fmt.Fprintln(os.Stderr, "\nCannot read from stdin (not a terminal?). Use --force to skip confirmation.")
+		}
+		return false
+	}
 	response = strings.TrimSpace(strings.ToLower(response))
 	return response == "y" || response == "yes"
 }
