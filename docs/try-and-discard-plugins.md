@@ -111,6 +111,27 @@ claudeup-lab rm --lab <target-project>-<plugin-name>
 
 The plugin never touched your host `~/.claude/` directory.
 
+## Automating prerequisites with `--init-script`
+
+Some plugins need system packages or other setup that requires root. Instead of running these manually after every lab creation, use `--init-script` to run a host script automatically during container initialization:
+
+```bash
+claudeup-lab start --name mylab --profile bare --init-script ~/scripts/my-deps.sh
+```
+
+The script is bind-mounted read-only into the container and runs as the `node` user after all other initialization completes. Use `sudo` for operations that need root (passwordless sudo is available).
+
+**Example init script for Playwright-based plugins:**
+
+```bash
+#!/bin/bash
+# ~/scripts/playwright-deps.sh
+sudo apt-get update -qq
+sudo apt-get install -y -qq libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+  libdbus-1-3 libcups2 libatspi2.0-0 libxcomposite1 libxdamage1 \
+  libxfixes3 libxrandr2 libgbm1 libasound2
+```
+
 ## Example: Testing gstack
 
 gstack provides 9 specialized skills for Claude Code (planning, review, QA with headless browser, shipping, retrospectives).
@@ -121,9 +142,10 @@ gstack provides 9 specialized skills for Claude Code (planning, review, QA with 
 # 1. Clone gstack (already done if you have it locally)
 git clone https://github.com/garrytan/gstack.git ~/code/gstack
 
-# 2. Start a clean-slate lab against a project you want to test with
+# 2. Start a clean-slate lab with Playwright deps pre-installed
 cd ~/code/myproject
-claudeup-lab start --name myproject-gstack --profile bare
+claudeup-lab start --name myproject-gstack --profile bare \
+  --init-script ~/scripts/playwright-deps.sh
 
 # 3. Shell in and install gstack
 claudeup-lab exec --lab myproject-gstack

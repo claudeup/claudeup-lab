@@ -447,6 +447,116 @@ func TestFirewallDisabledByDefault(t *testing.T) {
 	}
 }
 
+func TestInitScriptMountAndCommand(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a real script file so the optional mount check passes
+	scriptPath := filepath.Join(t.TempDir(), "init.sh")
+	os.WriteFile(scriptPath, []byte("#!/bin/bash\necho hello"), 0o755)
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		InitScript:   scriptPath,
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+	content := string(data)
+
+	// Mount should be present with the script path as source
+	if !strings.Contains(content, scriptPath) {
+		t.Error("should mount init script into container")
+	}
+	if !strings.Contains(content, "/usr/local/bin/lab-init-script") {
+		t.Error("should mount init script at /usr/local/bin/lab-init-script")
+	}
+
+	// postCreateCommand should include the init script at the end
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+	postCreate, ok := parsed["postCreateCommand"].(string)
+	if !ok {
+		t.Fatal("postCreateCommand should be a string")
+	}
+	if !strings.HasSuffix(postCreate, "&& /usr/local/bin/lab-init-script") {
+		t.Errorf("postCreateCommand should end with init script execution, got: %s", postCreate)
+	}
+}
+
+func TestInitScriptSkippedWhenEmpty(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+	content := string(data)
+
+	if strings.Contains(content, "lab-init-script") {
+		t.Error("should not reference init script when InitScript is empty")
+	}
+
+	// postCreateCommand should end with init-claudeup.sh, not init script
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+	postCreate := parsed["postCreateCommand"].(string)
+	if strings.Contains(postCreate, "lab-init-script") {
+		t.Errorf("postCreateCommand should not contain init script when not set, got: %s", postCreate)
+	}
+}
+
+func TestInitScriptSkippedWhenFileMissing(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		InitScript:   "/nonexistent/path/init.sh",
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+	content := string(data)
+
+	if strings.Contains(content, "lab-init-script") {
+		t.Error("should not mount init script when file doesn't exist")
+	}
+}
+
 func TestFeatureInjection(t *testing.T) {
 	dir := t.TempDir()
 
