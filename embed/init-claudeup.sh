@@ -31,6 +31,13 @@ else
     echo "[SKIP] claudeup already installed"
 fi
 
+# Check if a profile uses multi-scope format (has perScope key)
+is_multi_scope() {
+    local profile_name="$1"
+    local profile_file="$CLAUDEUP_HOME/profiles/$profile_name.json"
+    [ -f "$profile_file" ] && jq -e '.perScope' "$profile_file" > /dev/null 2>&1
+}
+
 # Apply base profile at user scope (foundation layer)
 if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
     echo "Applying base profile: $CLAUDE_BASE_PROFILE (user scope)..."
@@ -42,21 +49,33 @@ if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
     fi
 fi
 
-# Apply profile: project scope when layering on a base, user scope otherwise
-if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
-    apply_scope="--project"
-    scope_label="project"
+# Apply the main profile. Multi-scope profiles are applied without a scope flag
+# so that claudeup's ApplyAllScopes writes each scope to the correct location.
+# Single-scope profiles use explicit scope flags for layering compatibility.
+if is_multi_scope "$CLAUDE_PROFILE"; then
+    echo "Applying multi-scope profile: $CLAUDE_PROFILE..."
+    if claudeup profile apply "$CLAUDE_PROFILE" -y; then
+        echo "[OK] Profile '$CLAUDE_PROFILE' applied (all scopes)"
+    else
+        echo "[WARN] claudeup profile apply failed, will retry on next container start"
+        exit 1
+    fi
 else
-    apply_scope="--user"
-    scope_label="user"
-fi
+    if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
+        apply_scope="--project"
+        scope_label="project"
+    else
+        apply_scope="--user"
+        scope_label="user"
+    fi
 
-echo "Applying profile: $CLAUDE_PROFILE ($scope_label scope)..."
-if claudeup profile apply "$CLAUDE_PROFILE" $apply_scope -y; then
-    echo "[OK] Profile '$CLAUDE_PROFILE' applied at $scope_label scope"
-else
-    echo "[WARN] claudeup profile apply failed, will retry on next container start"
-    exit 1
+    echo "Applying profile: $CLAUDE_PROFILE ($scope_label scope)..."
+    if claudeup profile apply "$CLAUDE_PROFILE" $apply_scope -y; then
+        echo "[OK] Profile '$CLAUDE_PROFILE' applied at $scope_label scope"
+    else
+        echo "[WARN] claudeup profile apply failed, will retry on next container start"
+        exit 1
+    fi
 fi
 
 # Sync extensions (agents, commands, skills, hooks, output-styles) from profiles.

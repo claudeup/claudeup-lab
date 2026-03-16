@@ -97,6 +97,20 @@ claudeup-lab start --profile blank --project ~/code/myproject
 
 They control which profiles get applied and at which Claude Code scope.
 
+### Multi-scope profiles
+
+If your profile uses the multi-scope format (has a `perScope` key with `user`, `project`, and/or `local` sections), pass it with `--profile` and claudeup-lab will apply all scopes automatically:
+
+```bash
+claudeup-lab start --profile full-stack --project ~/code/myproject
+```
+
+The profile's `perScope.user` section is applied at user scope, `perScope.project` at project scope, and `perScope.local` at local scope. This replaces the need for `--base-profile` + `--profile` when your profile already defines settings at multiple scope levels.
+
+### Single-scope profiles
+
+For profiles without `perScope` (legacy format), `--profile` and `--base-profile` control scope placement:
+
 **`--profile` only:**
 
 ```bash
@@ -121,14 +135,15 @@ claudeup-lab start --base-profile base --profile solo-test --project ~/code/mypr
 
 No snapshot is taken. `base` is applied at user scope, `solo-test` at project scope. This gives you a foundation layer with targeted overrides on top.
 
-**Summary:**
+### Summary
 
-| Flags                                | Snapshot? | User scope                 | Project scope              |
-| ------------------------------------ | --------- | -------------------------- | -------------------------- |
-| `--profile base`                     | No        | `base`                     | (empty)                    |
-| `--base-profile base`                | Yes       | `base`                     | snapshot of current config |
-| `--base-profile base --profile solo` | No        | `base`                     | `solo`                     |
-| (neither)                            | Yes       | snapshot of current config | (empty)                    |
+| Flags                                | Snapshot? | User scope                 | Project scope              | Local scope      |
+| ------------------------------------ | --------- | -------------------------- | -------------------------- | ---------------- |
+| `--profile multi-scope`              | No        | `perScope.user`            | `perScope.project`         | `perScope.local` |
+| `--profile base`                     | No        | `base`                     | (empty)                    | (empty)          |
+| `--base-profile base`                | Yes       | `base`                     | snapshot of current config | (empty)          |
+| `--base-profile base --profile solo` | No        | `base`                     | `solo`                     | (empty)          |
+| (neither)                            | Yes       | snapshot of current config | (empty)                    | (empty)          |
 
 ## What's the difference between stop and rm?
 
