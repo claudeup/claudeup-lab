@@ -60,13 +60,13 @@ lab-list: build ## List active labs
 
 lab-stop: build ## Stop a lab (LAB=name) or all labs (LAB=--all)
 	@if [ "$(LAB)" = "--all" ]; then $(BIN) stop --all; \
-	else test -n "$(LAB)" || (echo "Error: LAB required (or use LAB=--all)" && exit 1); \
-	$(BIN) stop --lab $(LAB); fi
+	elif [ -n "$(LAB)" ]; then $(BIN) stop --lab $(LAB); \
+	else echo "Error: LAB required (or use LAB=--all)" && exit 1; fi
 
 lab-cleanup: build ## Remove a lab (LAB=name) or all labs (LAB=--all)
 	@if [ "$(LAB)" = "--all" ]; then $(BIN) rm --all --force; \
-	else test -n "$(LAB)" || (echo "Error: LAB required (or use LAB=--all)" && exit 1); \
-	$(BIN) rm --lab $(LAB) --force; fi
+	elif [ -n "$(LAB)" ]; then $(BIN) rm --lab $(LAB) --force; \
+	else echo "Error: LAB required (or use LAB=--all)" && exit 1; fi
 
 lab-doctor: build ## Check system prerequisites
 	@$(BIN) doctor
