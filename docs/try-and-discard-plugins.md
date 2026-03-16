@@ -129,7 +129,7 @@ The script is bind-mounted read-only into the container and runs as the `node` u
 sudo apt-get update -qq
 sudo apt-get install -y -qq libnss3 libatk1.0-0 libatk-bridge2.0-0 \
   libdbus-1-3 libcups2 libatspi2.0-0 libxcomposite1 libxdamage1 \
-  libxfixes3 libxrandr2 libgbm1 libasound2
+  libxfixes3 libxrandr2 libgbm1 libasound2 libxkbcommon0
 ```
 
 ## Example: Testing gstack
