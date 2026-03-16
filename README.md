@@ -101,6 +101,8 @@ The container receives environment variables from the host at creation time. Var
 | `CLAUDE_CONFIG_REPO`   | `$CLAUDE_CONFIG_REPO`   | Git repo to clone for shared Claude Code configuration              |
 | `CLAUDE_CONFIG_BRANCH` | `$CLAUDE_CONFIG_BRANCH` | Branch of the config repo to use (default: `main`)                  |
 
+The container's `~/.claude` starts as an empty Docker volume populated during init -- not a copy of your host directory. Without `--profile`, your current config is snapshotted and applied. With `--profile`, only the named profile is applied. See the [FAQ](docs/FAQ.md#what-ends-up-in-the-containers-claude-directory) for details.
+
 ### Lab resolution
 
 Labs can be identified by display name, UUID, partial UUID prefix, project name, or profile name. When run from inside a lab worktree, the lab is inferred automatically.
