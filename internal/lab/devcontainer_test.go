@@ -80,6 +80,17 @@ func TestOptionalMountsSkipped(t *testing.T) {
 	if strings.Contains(content, ".claude-mem") {
 		t.Error("should skip .claude-mem mount when dir doesn't exist")
 	}
+
+	// Empty env vars should be omitted
+	if strings.Contains(content, "GITHUB_TOKEN") {
+		t.Error("should omit GITHUB_TOKEN when empty")
+	}
+	if strings.Contains(content, "CONTEXT7_API_KEY") {
+		t.Error("should omit CONTEXT7_API_KEY when empty")
+	}
+	if strings.Contains(content, "CLAUDE_BASE_PROFILE") {
+		t.Error("should omit CLAUDE_BASE_PROFILE when empty")
+	}
 }
 
 func TestClaudeupHomeOverridesMountPaths(t *testing.T) {
