@@ -1,7 +1,6 @@
 package lab
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -148,13 +147,11 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 	}
 
 	// Launch container
-	fmt.Println("Starting devcontainer (this may take a minute)...")
-	var devOutput bytes.Buffer
+	fmt.Println("Starting devcontainer...")
 	devCmd := exec.Command("devcontainer", "up", "--workspace-folder", worktreePath)
-	devCmd.Stdout = &devOutput
-	devCmd.Stderr = &devOutput
+	devCmd.Stdout = os.Stdout
+	devCmd.Stderr = os.Stderr
 	if err := devCmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "\n--- devcontainer output ---\n%s\n", devOutput.String())
 		m.worktrees.RemoveWorktree(barePath, worktreePath)
 		return nil, fmt.Errorf("devcontainer up: %w", err)
 	}
