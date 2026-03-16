@@ -172,7 +172,6 @@ func buildMounts(config *DevcontainerConfig) []string {
 		{filepath.Join(cupHome, "ext"), "/home/node/.claudeup/ext", "type=bind,readonly"},
 		{filepath.Join(home, ".claude-mem"), "/home/node/.claude-mem", "type=bind"},
 		{filepath.Join(home, ".ssh"), "/home/node/.ssh", "type=bind,readonly"},
-		{filepath.Join(home, ".claude", "settings.json"), "/tmp/base-settings.json", "type=bind,readonly"},
 		{filepath.Join(home, ".claude.json"), "/home/node/.claude.json", "type=bind"},
 	}
 

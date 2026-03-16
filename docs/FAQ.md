@@ -41,14 +41,13 @@ Without a version, the default from the registry is used. Unknown feature names 
 
 **Conditional bind mounts (only added if the source exists on the host):**
 
-| Source                  | Container Path          | Access     |
-| ----------------------- | ----------------------- | ---------- |
-| ~/.claudeup/profiles    | ~/.claudeup/profiles    | readonly   |
-| ~/.claudeup/ext         | ~/.claudeup/ext         | readonly   |
-| ~/.claude-mem           | ~/.claude-mem           | read-write |
-| ~/.ssh                  | ~/.ssh                  | readonly   |
-| ~/.claude/settings.json | /tmp/base-settings.json | readonly   |
-| ~/.claude.json          | ~/.claude.json          | read-write |
+| Source               | Container Path       | Access     |
+| -------------------- | -------------------- | ---------- |
+| ~/.claudeup/profiles | ~/.claudeup/profiles | readonly   |
+| ~/.claudeup/ext      | ~/.claudeup/ext      | readonly   |
+| ~/.claude-mem        | ~/.claude-mem        | read-write |
+| ~/.ssh               | ~/.ssh               | readonly   |
+| ~/.claude.json       | ~/.claude.json       | read-write |
 
 **Required bind mount:**
 
@@ -62,7 +61,6 @@ What does get carried in from the host (each is a conditional bind mount, only a
 
 - `~/.claudeup/profiles` (readonly) -- so named and snapshot profiles are available for the entrypoint to apply
 - `~/.claudeup/ext` (readonly) -- your extensions
-- `~/.claude/settings.json` -- mounted to `/tmp/base-settings.json`, not directly into `~/.claude`
 - `~/.claude.json` -- your credentials
 - `~/.ssh` (readonly)
 - `~/.claude-mem` (read-write)
@@ -71,7 +69,7 @@ What does get carried in from the host (each is a conditional bind mount, only a
 
 The container's `~/.claude` starts as an empty Docker volume. During the `postCreateCommand`, several init scripts populate it:
 
-1. **init-claude-config.sh** -- configures git identity, GitHub auth, and merges your host `settings.json` (from `/tmp/base-settings.json`) into the container's `~/.claude/settings.json`, stripping `statusLine`, `enabledPlugins`, and notification hooks
+1. **init-claude-config.sh** -- configures git identity (`GIT_USER_NAME`, `GIT_USER_EMAIL`), GitHub auth (`GITHUB_TOKEN`), and optionally clones a dotfiles repo (`DOTFILES_REPO`, `DOTFILES_BRANCH`)
 2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`.library/`, `CLAUDE.md`, `enabled.json`, `Makefile`)
 3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` at user or project scope, generates `enabled.json` from profile extension lists, and syncs extension symlinks
 
@@ -84,7 +82,7 @@ When Claude Code launches for the first time, it reads this config and installs 
 - **Marketplaces** -- plugin marketplace sources referenced by your plugins
 - **Extensions** -- which agents, commands, skills, hooks, rules, and output-styles are enabled
 
-The snapshot does **not** capture conversation history, project-specific state, or the full contents of `~/.claude/settings.json` (settings are handled separately via the base-settings bind mount). When the profile is applied inside the container, Claude Code downloads any marketplace plugins fresh -- they are not copied from the host.
+The snapshot does **not** capture conversation history, project-specific state, or the full contents of `~/.claude/settings.json`. When the profile is applied inside the container, Claude Code downloads any marketplace plugins fresh -- they are not copied from the host.
 
 **With `--profile`**: only the named profile is applied. No snapshot of your current config is taken.
 
