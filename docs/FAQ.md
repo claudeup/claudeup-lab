@@ -70,8 +70,8 @@ What does get carried in from the host (each is a conditional bind mount, only a
 The container's `~/.claude` starts as an empty Docker volume. During the `postCreateCommand`, several init scripts populate it:
 
 1. **init-claude-config.sh** -- configures git identity (`GIT_USER_NAME`, `GIT_USER_EMAIL`), GitHub auth (`GITHUB_TOKEN`), and optionally clones a dotfiles repo (`DOTFILES_REPO`, `DOTFILES_BRANCH`)
-2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`.library/`, `CLAUDE.md`, `enabled.json`, `Makefile`)
-3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` at user or project scope, generates `enabled.json` from profile extension lists, and syncs extension symlinks
+2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`CLAUDE.md`, `enabled.json`, `Makefile`)
+3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` -- either across all scopes for multi-scope profiles, or at user/project scope for single-scope profiles -- generates `enabled.json` from profile extension lists, and syncs extension symlinks
 
 When Claude Code launches for the first time, it reads this config and installs any marketplace plugins listed in `settings.json`. Plugins are downloaded fresh into the container -- they are not copied from the host.
 
@@ -97,6 +97,20 @@ claudeup-lab start --profile blank --project ~/code/myproject
 
 They control which profiles get applied and at which Claude Code scope.
 
+### Multi-scope profiles
+
+If your profile uses the multi-scope format (has a `perScope` key with `user`, `project`, and/or `local` sections), pass it with `--profile` and claudeup-lab will apply all scopes automatically:
+
+```bash
+claudeup-lab start --profile full-stack --project ~/code/myproject
+```
+
+The profile's `perScope.user` section is applied at user scope, `perScope.project` at project scope, and `perScope.local` at local scope. This replaces the need for `--base-profile` + `--profile` when your profile already defines settings at multiple scope levels.
+
+### Single-scope profiles
+
+For profiles without `perScope`, `--profile` and `--base-profile` control scope placement:
+
 **`--profile` only:**
 
 ```bash
@@ -121,14 +135,15 @@ claudeup-lab start --base-profile base --profile solo-test --project ~/code/mypr
 
 No snapshot is taken. `base` is applied at user scope, `solo-test` at project scope. This gives you a foundation layer with targeted overrides on top.
 
-**Summary:**
+### Summary
 
-| Flags                                | Snapshot? | User scope                 | Project scope              |
-| ------------------------------------ | --------- | -------------------------- | -------------------------- |
-| `--profile base`                     | No        | `base`                     | (empty)                    |
-| `--base-profile base`                | Yes       | `base`                     | snapshot of current config |
-| `--base-profile base --profile solo` | No        | `base`                     | `solo`                     |
-| (neither)                            | Yes       | snapshot of current config | (empty)                    |
+| Flags                                | Snapshot? | User scope                 | Project scope              | Local scope      |
+| ------------------------------------ | --------- | -------------------------- | -------------------------- | ---------------- |
+| `--profile multi-scope`              | No        | `perScope.user`            | `perScope.project`         | `perScope.local` |
+| `--profile base`                     | No        | `base`                     | (empty)                    | (empty)          |
+| `--base-profile base`                | Yes       | `base`                     | snapshot of current config | (empty)          |
+| `--base-profile base --profile solo` | No        | `base`                     | `solo`                     | (empty)          |
+| (neither)                            | Yes       | snapshot of current config | (empty)                    | (empty)          |
 
 ## What's the difference between stop and rm?
 

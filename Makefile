@@ -58,13 +58,15 @@ lab-attach: build ## Attach VS Code to a lab (LAB=name)
 lab-list: build ## List active labs
 	@$(BIN) list
 
-lab-stop: build ## Stop a lab (LAB=name)
-	@test -n "$(LAB)" || (echo "Error: LAB required" && exit 1)
-	@$(BIN) stop --lab $(LAB)
+lab-stop: build ## Stop a lab (LAB=name) or all labs (LAB=--all)
+	@if [ "$(LAB)" = "--all" ]; then $(BIN) stop --all; \
+	elif [ -n "$(LAB)" ]; then $(BIN) stop --lab $(LAB); \
+	else echo "Error: LAB required (or use LAB=--all)" && exit 1; fi
 
-lab-cleanup: build ## Remove a lab and its worktree (LAB=name)
-	@test -n "$(LAB)" || (echo "Error: LAB required" && exit 1)
-	@$(BIN) rm --lab $(LAB) --force
+lab-cleanup: build ## Remove a lab (LAB=name) or all labs (LAB=--all)
+	@if [ "$(LAB)" = "--all" ]; then $(BIN) rm --all --force; \
+	elif [ -n "$(LAB)" ]; then $(BIN) rm --lab $(LAB) --force; \
+	else echo "Error: LAB required (or use LAB=--all)" && exit 1; fi
 
 lab-doctor: build ## Check system prerequisites
 	@$(BIN) doctor
