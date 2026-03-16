@@ -29,6 +29,7 @@ type DevcontainerConfig struct {
 	BaseProfile  string
 	Features     []string
 	Firewall     bool
+	InitScript   string // Host path to script run after devcontainer setup
 }
 
 type featureEntry struct {
@@ -93,7 +94,7 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		"mounts":            mounts,
 		"containerEnv":      env,
 		"workspaceFolder":   fmt.Sprintf("/workspaces/%s", config.DisplayName),
-		"postCreateCommand": "(claude upgrade 2>/dev/null || true) && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh",
+		"postCreateCommand": buildPostCreateCommand(config),
 		"waitFor":           "postCreateCommand",
 		"customizations": map[string]interface{}{
 			"vscode": map[string]interface{}{
@@ -181,6 +182,13 @@ func buildMounts(config *DevcontainerConfig) []string {
 		}
 	}
 
+	// Init script bind mount (optional, user-provided)
+	if config.InitScript != "" {
+		if _, err := os.Stat(config.InitScript); err == nil {
+			mounts = append(mounts, fmt.Sprintf("source=%s,target=/usr/local/bin/lab-init-script,%s", config.InitScript, "type=bind,readonly"))
+		}
+	}
+
 	// Bare repo bind mount (required for git worktree resolution)
 	mounts = append(mounts, fmt.Sprintf("source=%s,target=%s,type=bind", config.BareRepoPath, config.BareRepoPath))
 
@@ -192,6 +200,16 @@ func buildMounts(config *DevcontainerConfig) []string {
 	)
 
 	return mounts
+}
+
+func buildPostCreateCommand(config *DevcontainerConfig) string {
+	cmd := "(claude upgrade 2>/dev/null || true) && /usr/local/bin/init-claude-config.sh && /usr/local/bin/init-config-repo.sh && /usr/local/bin/init-claudeup.sh"
+	if config.InitScript != "" {
+		if _, err := os.Stat(config.InitScript); err == nil {
+			cmd += " && /usr/local/bin/lab-init-script"
+		}
+	}
+	return cmd
 }
 
 func buildFeatures(specs []string) map[string]interface{} {

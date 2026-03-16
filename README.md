@@ -74,15 +74,16 @@ claudeup-lab rm --lab myproject-experimental
 
 ### `start` flags
 
-| Flag                     | Default               | Description                                                       |
-| ------------------------ | --------------------- | ----------------------------------------------------------------- |
-| `--project <path>`       | Current directory     | Project to create the lab from (must be a git repo)               |
-| `--profile <name>`       | Current config        | claudeup profile to apply                                         |
-| `--branch <name>`        | `lab/<profile>`       | Git branch name for the worktree                                  |
-| `--name <name>`          | `<project>-<profile>` | Display name for the lab                                          |
-| `--feature <name[:ver]>` | None                  | Devcontainer feature to include (repeatable)                      |
-| `--base-profile <name>`  | None                  | Apply a base profile first, then overlay with `--profile`         |
-| `--firewall`             | Off                   | Enable container firewall restricting network to allowed services |
+| Flag                     | Default               | Description                                                                |
+| ------------------------ | --------------------- | -------------------------------------------------------------------------- |
+| `--project <path>`       | Current directory     | Project to create the lab from (must be a git repo)                        |
+| `--profile <name>`       | Current config        | claudeup profile to apply                                                  |
+| `--branch <name>`        | `lab/<profile>`       | Git branch name for the worktree                                           |
+| `--name <name>`          | `<project>-<profile>` | Display name for the lab                                                   |
+| `--feature <name[:ver]>` | None                  | Devcontainer feature to include (repeatable)                               |
+| `--base-profile <name>`  | None                  | Apply a base profile first, then overlay with `--profile`                  |
+| `--firewall`             | Off                   | Enable container firewall restricting network to allowed services          |
+| `--init-script <path>`   | None                  | Host script to run after devcontainer setup (runs as node, sudo available) |
 
 ### Environment variables
 

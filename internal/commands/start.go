@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/claudeup/claudeup-lab/internal/lab"
 	"github.com/spf13/cobra"
@@ -24,6 +25,17 @@ func newStartCmd() *cobra.Command {
 				opts.Project = cwd
 			}
 			opts.Features = features
+
+			if opts.InitScript != "" {
+				absPath, err := filepath.Abs(opts.InitScript)
+				if err != nil {
+					return fmt.Errorf("resolve init script path: %w", err)
+				}
+				if _, err := os.Stat(absPath); err != nil {
+					return fmt.Errorf("init script not found: %s", absPath)
+				}
+				opts.InitScript = absPath
+			}
 
 			mgr := lab.NewManager(defaultBaseDir())
 
@@ -56,6 +68,7 @@ func newStartCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&features, "feature", nil, "Devcontainer feature (repeatable, e.g. go:1.23)")
 	cmd.Flags().StringVar(&opts.BaseProfile, "base-profile", "", "Apply base profile before main profile")
 	cmd.Flags().BoolVar(&opts.Firewall, "firewall", false, "Enable container firewall restricting network to allowed services")
+	cmd.Flags().StringVar(&opts.InitScript, "init-script", "", "Host script to run after devcontainer setup")
 
 	return cmd
 }

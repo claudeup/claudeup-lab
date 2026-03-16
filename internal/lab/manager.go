@@ -47,6 +47,7 @@ type StartOptions struct {
 	Features    []string
 	BaseProfile string
 	Firewall    bool
+	InitScript  string
 }
 
 // Start creates and launches a new lab environment.
@@ -139,6 +140,7 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		BaseProfile:  opts.BaseProfile,
 		Features:     opts.Features,
 		Firewall:     opts.Firewall,
+		InitScript:   opts.InitScript,
 	}
 	if err := RenderDevcontainer(dcConfig, worktreePath); err != nil {
 		m.worktrees.RemoveWorktree(barePath, worktreePath)
