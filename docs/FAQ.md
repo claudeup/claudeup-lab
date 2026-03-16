@@ -77,7 +77,14 @@ The container's `~/.claude` starts as an empty Docker volume. During the `postCr
 
 When Claude Code launches for the first time, it reads this config and installs any marketplace plugins listed in `settings.json`. Plugins are downloaded fresh into the container -- they are not copied from the host.
 
-**Without `--profile`**: claudeup-lab snapshots your current host config via `claudeup profile save` before starting. This captures your profile state (settings, extensions, plugins list) and applies it inside the container. The effect is similar to replicating your current setup, but through a profile snapshot -- not a direct mount.
+**Without `--profile`**: claudeup-lab snapshots your current host config via `claudeup profile save` before starting. The snapshot captures:
+
+- **Plugins** -- the list of enabled plugin names (e.g., `episodic-memory@superpowers-marketplace`), not plugin binaries or `node_modules`
+- **MCP servers** -- configured server names, commands, and args, with secret references (not secret values)
+- **Marketplaces** -- plugin marketplace sources referenced by your plugins
+- **Extensions** -- which agents, commands, skills, hooks, rules, and output-styles are enabled
+
+The snapshot does **not** capture conversation history, project-specific state, or the full contents of `~/.claude/settings.json` (settings are handled separately via the base-settings bind mount). When the profile is applied inside the container, Claude Code downloads any marketplace plugins fresh -- they are not copied from the host.
 
 **With `--profile`**: only the named profile is applied. No snapshot of your current config is taken.
 
