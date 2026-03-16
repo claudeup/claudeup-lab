@@ -77,6 +77,7 @@ RUN ARCH=$(uname -m) \
     && unzip -j /tmp/bun.zip "*/bun" -d /home/node/.bun/bin \
     && test -f /home/node/.bun/bin/bun \
     && chmod 755 /home/node/.bun/bin/bun \
+    && ln -s /home/node/.bun/bin/bun /home/node/.bun/bin/bunx \
     && rm -f /tmp/bun.zip
 
 RUN git config --global core.excludesfile ~/.gitignore_global && \
