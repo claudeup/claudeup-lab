@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,11 +41,16 @@ func newStartCmd() *cobra.Command {
 			mgr := lab.NewManager(defaultBaseDir())
 
 			meta, err := mgr.Start(&opts)
-			if err != nil {
+			if err != nil && meta == nil {
 				return err
 			}
 
 			fmt.Println()
+			var postCreateErr *lab.PostCreateError
+			if errors.As(err, &postCreateErr) {
+				fmt.Fprintf(os.Stderr, "Warning: %s\n", postCreateErr)
+				fmt.Fprintf(os.Stderr, "The container is running but may not be fully configured.\n\n")
+			}
 			fmt.Println("Lab ready!")
 			fmt.Printf("  Name:     %s\n", meta.DisplayName)
 			fmt.Printf("  ID:       %s\n", meta.ID[:8])
@@ -57,7 +63,7 @@ func newStartCmd() *cobra.Command {
 			fmt.Printf("  claudeup-lab exec   --lab %s -- claude\n", meta.DisplayName)
 			fmt.Printf("  claudeup-lab open   --lab %s\n", meta.DisplayName)
 			fmt.Printf("  claudeup-lab stop   --lab %s\n", meta.DisplayName)
-			return nil
+			return err
 		},
 	}
 

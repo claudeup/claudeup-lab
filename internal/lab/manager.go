@@ -1,7 +1,9 @@
 package lab
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -149,14 +151,19 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 	// Launch container
 	fmt.Println("Starting devcontainer...")
 	devCmd := exec.Command("devcontainer", "up", "--workspace-folder", worktreePath)
-	devCmd.Stdout = os.Stdout
+	var stdoutBuf bytes.Buffer
+	devCmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	devCmd.Stderr = os.Stderr
 	if err := devCmd.Run(); err != nil {
 		m.worktrees.RemoveWorktree(barePath, worktreePath)
 		return nil, fmt.Errorf("devcontainer up: %w", err)
 	}
+	var postCreateErr error
+	if _, err := parseDevcontainerResult(stdoutBuf.String()); err != nil {
+		postCreateErr = err
+	}
 
-	// Save metadata
+	// Save metadata (container is running even if postCreateCommand failed)
 	meta := &Metadata{
 		ID:          labID,
 		DisplayName: displayName,
@@ -173,7 +180,7 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		return nil, fmt.Errorf("save metadata: %w", err)
 	}
 
-	return meta, nil
+	return meta, postCreateErr
 }
 
 // LabStatus returns the running status of a lab.
