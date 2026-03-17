@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/claudeup/claudeup-lab/internal/lab"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 func newStartCmd() *cobra.Command {
 	var opts lab.StartOptions
 	var features []string
+	var envFlags []string
 
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -26,6 +28,22 @@ func newStartCmd() *cobra.Command {
 				opts.Project = cwd
 			}
 			opts.Features = features
+
+			// Parse --env KEY=VALUE flags into map
+			if len(envFlags) > 0 {
+				opts.EnvVars = make(map[string]string, len(envFlags))
+				for _, e := range envFlags {
+					idx := strings.IndexByte(e, '=')
+					if idx < 0 {
+						return fmt.Errorf("invalid --env format %q: expected KEY=VALUE", e)
+					}
+					key := e[:idx]
+					if key == "" {
+						return fmt.Errorf("invalid --env format %q: empty key", e)
+					}
+					opts.EnvVars[key] = e[idx+1:]
+				}
+			}
 
 			if opts.InitScript != "" {
 				absPath, err := filepath.Abs(opts.InitScript)
@@ -75,6 +93,8 @@ func newStartCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.BaseProfile, "base-profile", "", "Apply base profile before main profile")
 	cmd.Flags().BoolVar(&opts.Firewall, "firewall", false, "Enable container firewall restricting network to allowed services")
 	cmd.Flags().StringVar(&opts.InitScript, "init-script", "", "Host script to run after devcontainer setup")
+	cmd.Flags().StringArrayVar(&envFlags, "env", nil, "Set container environment variable as KEY=VALUE (repeatable)")
+	cmd.Flags().StringVar(&opts.EnvFile, "env-file", "", "Read container environment variables from file")
 
 	return cmd
 }
