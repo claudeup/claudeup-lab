@@ -69,10 +69,10 @@ func TestParseEnvFile(t *testing.T) {
 			t.Fatal("expected error for line without =")
 		}
 		wantMsg := "expected KEY=VALUE"
-		if !containsSubstr(err.Error(), wantMsg) {
+		if !strings.Contains(err.Error(), wantMsg) {
 			t.Errorf("error %q should contain %q", err.Error(), wantMsg)
 		}
-		if !containsSubstr(err.Error(), "line 2") {
+		if !strings.Contains(err.Error(), "line 2") {
 			t.Errorf("error %q should reference line 2", err.Error())
 		}
 	})
@@ -83,7 +83,7 @@ func TestParseEnvFile(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for empty key")
 		}
-		if !containsSubstr(err.Error(), "empty key") {
+		if !strings.Contains(err.Error(), "empty key") {
 			t.Errorf("error %q should contain 'empty key'", err.Error())
 		}
 	})
@@ -128,8 +128,4 @@ func assertEnvEqual(t *testing.T, got, want map[string]string) {
 			t.Errorf("key %q: got %q, want %q", k, gv, wv)
 		}
 	}
-}
-
-func containsSubstr(s, substr string) bool {
-	return strings.Contains(s, substr)
 }
