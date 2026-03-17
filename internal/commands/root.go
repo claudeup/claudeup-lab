@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/claudeup/claudeup-lab/internal/docker"
 	"github.com/spf13/cobra"
 )
 
 var version = "dev"
+
+func init() {
+	docker.SetVersion(version)
+}
 
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
