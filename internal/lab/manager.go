@@ -154,13 +154,23 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 	var stdoutBuf bytes.Buffer
 	devCmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	devCmd.Stderr = os.Stderr
-	if err := devCmd.Run(); err != nil {
-		m.worktrees.RemoveWorktree(barePath, worktreePath)
-		return nil, fmt.Errorf("devcontainer up: %w", err)
+	runErr := devCmd.Run()
+	result, parseErr := parseDevcontainerResult(stdoutBuf.String())
+
+	// If devcontainer up failed, check whether the container actually started
+	// (postCreateCommand failures exit non-zero but the container is running)
+	if runErr != nil {
+		if result == nil || result.ContainerID == "" {
+			m.worktrees.RemoveWorktree(barePath, worktreePath)
+			return nil, fmt.Errorf("devcontainer up: %w", runErr)
+		}
+		// Container started but postCreateCommand failed -- fall through to save metadata
+		parseErr = &PostCreateError{Detail: fmt.Sprintf("%v", runErr)}
 	}
+
 	var postCreateErr error
-	if _, err := parseDevcontainerResult(stdoutBuf.String()); err != nil {
-		postCreateErr = err
+	if parseErr != nil {
+		postCreateErr = parseErr
 	}
 
 	// Save metadata (container is running even if postCreateCommand failed)

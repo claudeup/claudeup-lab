@@ -13,6 +13,7 @@ func TestParseDevcontainerResult(t *testing.T) {
 		wantOutcome       string
 		wantErr           bool
 		wantPostCreateErr bool
+		wantContainerID   string
 		errContains       string
 	}{
 		{
@@ -71,6 +72,15 @@ func TestParseDevcontainerResult(t *testing.T) {
 			wantPostCreateErr: true,
 			errContains:       "exit code 127",
 		},
+		{
+			name:              "error with containerId still returns result",
+			output:            `{"outcome":"error","message":"postCreateCommand failed","containerId":"61edd2a3e975"}`,
+			wantOutcome:       "error",
+			wantErr:           true,
+			wantPostCreateErr: true,
+			wantContainerID:   "61edd2a3e975",
+			errContains:       "postCreateCommand failed",
+		},
 	}
 
 	for _, tt := range tests {
@@ -88,6 +98,14 @@ func TestParseDevcontainerResult(t *testing.T) {
 					var pce *PostCreateError
 					if !errors.As(err, &pce) {
 						t.Errorf("expected PostCreateError, got %T", err)
+					}
+				}
+				if tt.wantContainerID != "" {
+					if result == nil {
+						t.Fatal("expected non-nil result with containerId")
+					}
+					if result.ContainerID != tt.wantContainerID {
+						t.Errorf("containerId = %q, want %q", result.ContainerID, tt.wantContainerID)
 					}
 				}
 				return
