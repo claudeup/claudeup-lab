@@ -40,27 +40,31 @@ func (im *ImageManager) ExistsLocally(image string) bool {
 }
 
 // EnsureImage tries each tag from ImageTagsForPull in order, falling back
-// to building from the embedded Dockerfile if all pulls fail.
-func (im *ImageManager) EnsureImage(image string) error {
+// to building from the embedded Dockerfile if all pulls fail. Returns the
+// tag that is available locally for use by the caller.
+func (im *ImageManager) EnsureImage(image string) (string, error) {
 	if im.ExistsLocally(image) {
-		return nil
+		return image, nil
 	}
 
 	tags := ImageTagsForPull()
 	for _, tag := range tags {
 		if im.ExistsLocally(tag) {
-			return nil
+			return tag, nil
 		}
 		fmt.Printf("Pulling image %s...\n", tag)
 		if err := im.pull(tag); err != nil {
 			fmt.Printf("Pull failed (%v)\n", err)
 			continue
 		}
-		return nil
+		return tag, nil
 	}
 
 	fmt.Println("All pulls failed, building from embedded Dockerfile...")
-	return im.buildFallback(image)
+	if err := im.buildFallback(image); err != nil {
+		return "", err
+	}
+	return image, nil
 }
 
 func (im *ImageManager) pull(image string) error {
