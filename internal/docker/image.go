@@ -61,6 +61,7 @@ func (im *ImageManager) buildFallback(tag string) error {
 		"init-claude-config.sh": assets.InitClaudeConfig,
 		"init-config-repo.sh":   assets.InitConfigRepo,
 		"init-claudeup.sh":      assets.InitClaudeup,
+		"init-firewall.sh":      assets.InitFirewall,
 	}
 	for name, content := range files {
 		path := filepath.Join(dir, name)
