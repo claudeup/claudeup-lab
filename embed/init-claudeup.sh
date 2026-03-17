@@ -6,7 +6,7 @@
 set -euo pipefail
 
 CLAUDEUP_HOME="/home/node/.claudeup"
-CLAUDE_HOME="/home/node/.claude"
+CLAUDE_CONFIG_DIR="/home/node/.claude"
 MARKER_FILE="$CLAUDEUP_HOME/.setup-complete"
 
 echo "Initializing claudeup..."
@@ -93,7 +93,7 @@ fi
 
 # Sync extensions (agents, commands, skills, hooks, output-styles) from profiles.
 # Skip if enabled.json already exists (e.g., deployed by init-config-repo.sh).
-if [ ! -f "$CLAUDE_HOME/enabled.json" ]; then
+if [ ! -f "$CLAUDEUP_HOME/enabled.json" ]; then
     # Generate enabled.json from profile extensions
     ext_base="{}"
     if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
@@ -119,7 +119,7 @@ if [ ! -f "$CLAUDE_HOME/enabled.json" ]; then
     merged_items=$(jq -n --argjson base "$ext_base" --argjson profile "$ext_profile" '$base * $profile')
 
     if [ "$merged_items" != "{}" ]; then
-        echo "$merged_items" > "$CLAUDE_HOME/enabled.json"
+        echo "$merged_items" > "$CLAUDEUP_HOME/enabled.json"
         echo "[OK] enabled.json generated from profile extensions"
     else
         echo "[SKIP] No extensions in profile(s)"
@@ -129,9 +129,9 @@ else
 fi
 
 # Create category directories and sync symlinks
-if [ -f "$CLAUDE_HOME/enabled.json" ]; then
+if [ -f "$CLAUDEUP_HOME/enabled.json" ]; then
     for dir in skills agents commands hooks output-styles rules; do
-        mkdir -p "$CLAUDE_HOME/$dir"
+        mkdir -p "$CLAUDE_CONFIG_DIR/$dir"
     done
 
     if command -v claudeup &> /dev/null; then

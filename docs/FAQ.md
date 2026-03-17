@@ -70,8 +70,8 @@ What does get carried in from the host (each is a conditional bind mount, only a
 The container's `~/.claude` starts as an empty Docker volume. During the `postCreateCommand`, several init scripts populate it:
 
 1. **init-claude-config.sh** -- configures git identity (`GIT_USER_NAME`, `GIT_USER_EMAIL`), GitHub auth (`GITHUB_TOKEN`), and optionally clones a dotfiles repo (`DOTFILES_REPO`, `DOTFILES_BRANCH`)
-2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`CLAUDE.md`, `enabled.json`, `Makefile`)
-3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` -- either across all scopes for multi-scope profiles, or at user/project scope for single-scope profiles -- generates `enabled.json` from profile extension lists, and syncs extension symlinks
+2. **init-config-repo.sh** -- if `CLAUDE_CONFIG_REPO` is set, clones it and deploys shared config (`CLAUDE.md`, `Makefile` to `~/.claude`; `enabled.json` to `~/.claudeup`)
+3. **init-claudeup.sh** -- installs claudeup, applies `CLAUDE_BASE_PROFILE` at user scope (if set), then applies `CLAUDE_PROFILE` -- either across all scopes for multi-scope profiles, or at user/project scope for single-scope profiles -- generates `~/.claudeup/enabled.json` from profile extension lists, and syncs extension symlinks into `~/.claude`
 
 When Claude Code launches for the first time, it reads this config and installs any marketplace plugins listed in `settings.json`. Plugins are downloaded fresh into the container -- they are not copied from the host.
 

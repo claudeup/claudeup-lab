@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-CLAUDE_HOME="/home/node/.claude"
+CLAUDE_CONFIG_DIR="/home/node/.claude"
 DOTFILES_DIR="/home/node/dotfiles"
 
 echo "Initializing Claude Code configuration..."
@@ -81,7 +81,7 @@ elif [ -n "${DOTFILES_REPO:-}" ]; then
     echo "[SKIP] Dotfiles directory not empty, preserving"
 fi
 
-mkdir -p "$CLAUDE_HOME"
+mkdir -p "$CLAUDE_CONFIG_DIR"
 
 mkdir -p /home/node/.npm-global/lib
 
