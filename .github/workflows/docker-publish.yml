@@ -28,16 +28,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
-        id: version
-        run: echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: embed/
           push: true
           platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ghcr.io/claudeup/claudeup-lab:latest
-            ghcr.io/claudeup/claudeup-lab:${{ steps.version.outputs.tag }}
+            ghcr.io/claudeup/claudeup-lab:${{ github.ref_name }}

@@ -39,16 +39,26 @@ func (im *ImageManager) ExistsLocally(image string) bool {
 	return cmd.Run() == nil
 }
 
-// EnsureImage tries each tag from ImageTagsForPull in order, falling back
-// to building from the embedded Dockerfile if all pulls fail. Returns the
-// tag that is available locally for use by the caller.
+// EnsureImage makes sure a usable image is available locally. If
+// CLAUDEUP_LAB_IMAGE was set, the caller-supplied image is pulled directly.
+// Otherwise the default tag chain (versioned -> latest -> fallback build)
+// is tried. Returns the tag that is available locally.
 func (im *ImageManager) EnsureImage(image string) (string, error) {
 	if im.ExistsLocally(image) {
 		return image, nil
 	}
 
-	tags := ImageTagsForPull()
-	for _, tag := range tags {
+	// Custom image override: pull it directly, no fallback chain.
+	if os.Getenv("CLAUDEUP_LAB_IMAGE") != "" {
+		fmt.Printf("Pulling image %s...\n", image)
+		if err := im.pull(image); err != nil {
+			return "", fmt.Errorf("pull custom image: %w", err)
+		}
+		return image, nil
+	}
+
+	// Default image: try versioned tag, then :latest, then local build.
+	for _, tag := range ImageTagsForPull() {
 		if im.ExistsLocally(tag) {
 			return tag, nil
 		}
