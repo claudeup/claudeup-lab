@@ -13,7 +13,10 @@ import (
 func ParseEnvFile(path string) (map[string]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("env file not found: %s", path)
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("env file not found: %s", path)
+		}
+		return nil, fmt.Errorf("open env file %s: %w", path, err)
 	}
 	defer f.Close()
 
