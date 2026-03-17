@@ -192,7 +192,7 @@ For git-tracked changes:
 
 For files outside the worktree (e.g., something written to `/tmp`):
 
-- From the host, use `docker cp` to pull a file out:
+- From the host, use `docker cp` to pull a file out. Note that `docker cp` does not support glob patterns -- you must specify the exact file path:
 
   ```bash
   docker cp <container>:/tmp/myfile ./myfile
