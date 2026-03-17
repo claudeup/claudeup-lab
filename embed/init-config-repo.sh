@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ABOUTME: Clones a Claude configuration repo and deploys shared config.
+# ABOUTME: Clones a Claude configuration repo and deploys shared config to ~/.claude and ~/.claudeup.
 # ABOUTME: Reads CLAUDE_CONFIG_REPO and CLAUDE_CONFIG_BRANCH env vars.
 
 set -euo pipefail
@@ -27,7 +27,7 @@ git clone --branch "$BRANCH" --depth 1 "$CLAUDE_CONFIG_REPO" "$TEMP_DIR"
 
 mkdir -p "$CLAUDE_CONFIG_DIR"
 
-# Deploy config files
+# Deploy config files to ~/.claude (enabled.json is handled separately below)
 for file in CLAUDE.md Makefile; do
     if [ -f "$TEMP_DIR/$file" ]; then
         cp "$TEMP_DIR/$file" "$CLAUDE_CONFIG_DIR/$file"
