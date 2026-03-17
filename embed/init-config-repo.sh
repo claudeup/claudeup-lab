@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# ABOUTME: Clones a Claude configuration repo and deploys shared config into ~/.claude.
+# ABOUTME: Clones a Claude configuration repo and deploys shared config.
 # ABOUTME: Reads CLAUDE_CONFIG_REPO and CLAUDE_CONFIG_BRANCH env vars.
 
 set -euo pipefail
 
-CLAUDE_HOME="/home/node/.claude"
-MARKER_FILE="$CLAUDE_HOME/.config-repo-deployed"
+CLAUDE_CONFIG_DIR="/home/node/.claude"
+CLAUDEUP_HOME="/home/node/.claudeup"
+MARKER_FILE="$CLAUDE_CONFIG_DIR/.config-repo-deployed"
 
 if [ -f "$MARKER_FILE" ]; then
     echo "[SKIP] Config repo already deployed"
@@ -24,21 +25,23 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 echo "Cloning config repo ($BRANCH)..."
 git clone --branch "$BRANCH" --depth 1 "$CLAUDE_CONFIG_REPO" "$TEMP_DIR"
 
-# Deploy config files (extensions are managed by claudeup ext, not the config repo)
-for file in CLAUDE.md enabled.json Makefile; do
+# Deploy config files
+for file in CLAUDE.md Makefile; do
     if [ -f "$TEMP_DIR/$file" ]; then
-        cp "$TEMP_DIR/$file" "$CLAUDE_HOME/$file"
-        echo "[OK] $file deployed"
+        cp "$TEMP_DIR/$file" "$CLAUDE_CONFIG_DIR/$file"
+        echo "[OK] $file deployed to $CLAUDE_CONFIG_DIR"
     fi
 done
 
-# Create category directories for symlinks
-for dir in skills agents commands hooks output-styles rules; do
-    mkdir -p "$CLAUDE_HOME/$dir"
-done
+# enabled.json lives in CLAUDEUP_HOME for claudeup ext sync
+if [ -f "$TEMP_DIR/enabled.json" ]; then
+    mkdir -p "$CLAUDEUP_HOME"
+    cp "$TEMP_DIR/enabled.json" "$CLAUDEUP_HOME/enabled.json"
+    echo "[OK] enabled.json deployed to $CLAUDEUP_HOME"
+fi
 
 # Sync symlinks from enabled.json
-if command -v claudeup &> /dev/null && [ -f "$CLAUDE_HOME/enabled.json" ]; then
+if command -v claudeup &> /dev/null && [ -f "$CLAUDEUP_HOME/enabled.json" ]; then
     claudeup ext sync -y
     echo "[OK] Extension symlinks synced"
 fi
