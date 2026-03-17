@@ -74,7 +74,7 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 	// Validate env vars early to fail fast before expensive operations
 	extraEnv, err := mergeEnvVars(opts.EnvFile, opts.EnvVars)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("process environment variables: %w", err)
 	}
 
 	// Handle profile snapshotting

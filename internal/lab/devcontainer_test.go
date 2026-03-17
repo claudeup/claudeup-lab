@@ -614,10 +614,15 @@ func TestExtraEnvAddsNewVars(t *testing.T) {
 	}
 
 	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
-	data, _ := os.ReadFile(outPath)
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read devcontainer.json: %v", err)
+	}
 
 	var parsed map[string]interface{}
-	json.Unmarshal(data, &parsed)
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("parse devcontainer.json: %v", err)
+	}
 
 	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
 	if !ok {
@@ -659,10 +664,15 @@ func TestExtraEnvOverridesDefaults(t *testing.T) {
 	}
 
 	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
-	data, _ := os.ReadFile(outPath)
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read devcontainer.json: %v", err)
+	}
 
 	var parsed map[string]interface{}
-	json.Unmarshal(data, &parsed)
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("parse devcontainer.json: %v", err)
+	}
 
 	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
 	if !ok {
@@ -670,6 +680,48 @@ func TestExtraEnvOverridesDefaults(t *testing.T) {
 	}
 	if envRaw["NODE_OPTIONS"] != "--max-old-space-size=8192" {
 		t.Errorf("NODE_OPTIONS = %v, want --max-old-space-size=8192", envRaw["NODE_OPTIONS"])
+	}
+}
+
+func TestExtraEnvOverridesAutoForwardedVars(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		GitHubToken:  "host-token",
+		ExtraEnv: map[string]string{
+			"GITHUB_TOKEN": "custom-token",
+		},
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read devcontainer.json: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("parse devcontainer.json: %v", err)
+	}
+
+	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
+	if !ok {
+		t.Fatal("containerEnv should be a map")
+	}
+	if envRaw["GITHUB_TOKEN"] != "custom-token" {
+		t.Errorf("GITHUB_TOKEN = %v, want custom-token (ExtraEnv should override auto-forwarded vars)", envRaw["GITHUB_TOKEN"])
 	}
 }
 
@@ -692,10 +744,15 @@ func TestExtraEnvNilIsNoOp(t *testing.T) {
 	}
 
 	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
-	data, _ := os.ReadFile(outPath)
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read devcontainer.json: %v", err)
+	}
 
 	var parsed map[string]interface{}
-	json.Unmarshal(data, &parsed)
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("parse devcontainer.json: %v", err)
+	}
 
 	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
 	if !ok {

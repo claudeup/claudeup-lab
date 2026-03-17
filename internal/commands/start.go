@@ -30,20 +30,11 @@ func newStartCmd() *cobra.Command {
 			opts.Features = features
 
 			// Parse --env KEY=VALUE flags into map
-			if len(envFlags) > 0 {
-				opts.EnvVars = make(map[string]string, len(envFlags))
-				for _, e := range envFlags {
-					idx := strings.IndexByte(e, '=')
-					if idx < 0 {
-						return fmt.Errorf("invalid --env format %q: expected KEY=VALUE", e)
-					}
-					key := e[:idx]
-					if key == "" {
-						return fmt.Errorf("invalid --env format %q: empty key", e)
-					}
-					opts.EnvVars[key] = e[idx+1:]
-				}
+			envVars, err := parseEnvFlags(envFlags)
+			if err != nil {
+				return err
 			}
+			opts.EnvVars = envVars
 
 			if opts.InitScript != "" {
 				absPath, err := filepath.Abs(opts.InitScript)
@@ -97,4 +88,25 @@ func newStartCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.EnvFile, "env-file", "", "Read container environment variables from file")
 
 	return cmd
+}
+
+// parseEnvFlags parses a slice of "KEY=VALUE" strings into a map.
+func parseEnvFlags(flags []string) (map[string]string, error) {
+	if len(flags) == 0 {
+		return nil, nil
+	}
+
+	env := make(map[string]string, len(flags))
+	for _, e := range flags {
+		idx := strings.IndexByte(e, '=')
+		if idx < 0 {
+			return nil, fmt.Errorf("invalid --env format %q: expected KEY=VALUE", e)
+		}
+		key := e[:idx]
+		if key == "" {
+			return nil, fmt.Errorf("invalid --env format %q: empty key", e)
+		}
+		env[key] = e[idx+1:]
+	}
+	return env, nil
 }
