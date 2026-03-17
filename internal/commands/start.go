@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/claudeup/claudeup-lab/internal/lab"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 func newStartCmd() *cobra.Command {
 	var opts lab.StartOptions
 	var features []string
+	var envFlags []string
 
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -26,6 +28,13 @@ func newStartCmd() *cobra.Command {
 				opts.Project = cwd
 			}
 			opts.Features = features
+
+			// Parse --env KEY=VALUE flags into map
+			envVars, err := parseEnvFlags(envFlags)
+			if err != nil {
+				return err
+			}
+			opts.EnvVars = envVars
 
 			if opts.InitScript != "" {
 				absPath, err := filepath.Abs(opts.InitScript)
@@ -75,6 +84,29 @@ func newStartCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.BaseProfile, "base-profile", "", "Apply base profile before main profile")
 	cmd.Flags().BoolVar(&opts.Firewall, "firewall", false, "Enable container firewall restricting network to allowed services")
 	cmd.Flags().StringVar(&opts.InitScript, "init-script", "", "Host script to run after devcontainer setup")
+	cmd.Flags().StringArrayVar(&envFlags, "env", nil, "Set container environment variable as KEY=VALUE (repeatable)")
+	cmd.Flags().StringVar(&opts.EnvFile, "env-file", "", "Read container environment variables from file")
 
 	return cmd
+}
+
+// parseEnvFlags parses a slice of "KEY=VALUE" strings into a map.
+func parseEnvFlags(flags []string) (map[string]string, error) {
+	if len(flags) == 0 {
+		return nil, nil
+	}
+
+	env := make(map[string]string, len(flags))
+	for _, e := range flags {
+		idx := strings.IndexByte(e, '=')
+		if idx < 0 {
+			return nil, fmt.Errorf("invalid --env format %q: expected KEY=VALUE", e)
+		}
+		key := e[:idx]
+		if key == "" {
+			return nil, fmt.Errorf("invalid --env format %q: empty key", e)
+		}
+		env[key] = e[idx+1:]
+	}
+	return env, nil
 }
