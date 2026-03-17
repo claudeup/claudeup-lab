@@ -84,8 +84,8 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 	labID := uuid.New().String()
 
 	// Ensure base image
-	image := docker.ImageTag()
-	if err := m.images.EnsureImage(image); err != nil {
+	image, err := m.images.EnsureImage(docker.ImageTag())
+	if err != nil {
 		return nil, fmt.Errorf("ensure base image: %w", err)
 	}
 

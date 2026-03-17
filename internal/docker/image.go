@@ -12,6 +12,19 @@ import (
 
 const DefaultImage = "ghcr.io/claudeup/claudeup-lab:latest"
 
+const imageBase = "ghcr.io/claudeup/claudeup-lab"
+
+var buildVersion string
+
+// SetVersion records the build version for constructing versioned image tags.
+func SetVersion(v string) {
+	buildVersion = v
+}
+
+func isReleaseVersion() bool {
+	return buildVersion != "" && buildVersion != "dev"
+}
+
 // ImageManager handles pulling and building the base container image.
 type ImageManager struct{}
 
@@ -26,20 +39,42 @@ func (im *ImageManager) ExistsLocally(image string) bool {
 	return cmd.Run() == nil
 }
 
-// EnsureImage pulls the image from the registry, falling back to building
-// from the embedded Dockerfile if the pull fails.
-func (im *ImageManager) EnsureImage(image string) error {
+// EnsureImage makes sure a usable image is available locally. If
+// CLAUDEUP_LAB_IMAGE was set, the caller-supplied image is pulled directly.
+// Otherwise the default tag chain (versioned -> latest -> fallback build)
+// is tried. Returns the tag that is available locally.
+func (im *ImageManager) EnsureImage(image string) (string, error) {
 	if im.ExistsLocally(image) {
-		return nil
+		return image, nil
 	}
 
-	fmt.Printf("Pulling image %s...\n", image)
-	if err := im.pull(image); err != nil {
-		fmt.Printf("Pull failed (%v), building from embedded Dockerfile...\n", err)
-		return im.buildFallback(image)
+	// Custom image override: pull it directly, no fallback chain.
+	if os.Getenv("CLAUDEUP_LAB_IMAGE") != "" {
+		fmt.Printf("Pulling image %s...\n", image)
+		if err := im.pull(image); err != nil {
+			return "", fmt.Errorf("pull custom image: %w", err)
+		}
+		return image, nil
 	}
 
-	return nil
+	// Default image: try versioned tag, then :latest, then local build.
+	for _, tag := range ImageTagsForPull() {
+		if im.ExistsLocally(tag) {
+			return tag, nil
+		}
+		fmt.Printf("Pulling image %s...\n", tag)
+		if err := im.pull(tag); err != nil {
+			fmt.Printf("Pull failed (%v)\n", err)
+			continue
+		}
+		return tag, nil
+	}
+
+	fmt.Println("All pulls failed, building from embedded Dockerfile...")
+	if err := im.buildFallback(image); err != nil {
+		return "", err
+	}
+	return image, nil
 }
 
 func (im *ImageManager) pull(image string) error {
@@ -81,12 +116,29 @@ func (im *ImageManager) buildFallback(tag string) error {
 	return nil
 }
 
-// ImageTag returns the configured image tag, allowing override via
-// the CLAUDEUP_LAB_IMAGE environment variable.
+// ImageTag returns the preferred image tag. If CLAUDEUP_LAB_IMAGE is set,
+// it takes precedence. Otherwise returns a versioned tag for release builds
+// or :latest for dev builds.
 func ImageTag() string {
 	tag := os.Getenv("CLAUDEUP_LAB_IMAGE")
 	if tag != "" {
 		return strings.TrimSpace(tag)
 	}
+	if isReleaseVersion() {
+		return imageBase + ":v" + buildVersion
+	}
 	return DefaultImage
+}
+
+// ImageTagsForPull returns the ordered list of image tags to try when pulling.
+// For release builds: versioned tag first, then :latest.
+// For dev builds: only :latest.
+func ImageTagsForPull() []string {
+	if isReleaseVersion() {
+		return []string{
+			imageBase + ":v" + buildVersion,
+			DefaultImage,
+		}
+	}
+	return []string{DefaultImage}
 }
