@@ -71,6 +71,12 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		return nil, fmt.Errorf("%s is not a git repository", projectPath)
 	}
 
+	// Validate env vars early to fail fast before expensive operations
+	extraEnv, err := mergeEnvVars(opts.EnvFile, opts.EnvVars)
+	if err != nil {
+		return nil, err
+	}
+
 	// Handle profile snapshotting
 	profile := opts.Profile
 	var snapshotName string
@@ -122,12 +128,6 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 	branch, err = m.worktrees.CreateWorktree(barePath, worktreePath, branch)
 	if err != nil {
 		return nil, fmt.Errorf("create worktree: %w", err)
-	}
-
-	extraEnv, err := mergeEnvVars(opts.EnvFile, opts.EnvVars)
-	if err != nil {
-		m.worktrees.RemoveWorktree(barePath, worktreePath)
-		return nil, fmt.Errorf("merge env vars: %w", err)
 	}
 
 	// Render devcontainer.json
