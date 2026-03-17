@@ -25,6 +25,8 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 echo "Cloning config repo ($BRANCH)..."
 git clone --branch "$BRANCH" --depth 1 "$CLAUDE_CONFIG_REPO" "$TEMP_DIR"
 
+mkdir -p "$CLAUDE_CONFIG_DIR"
+
 # Deploy config files
 for file in CLAUDE.md Makefile; do
     if [ -f "$TEMP_DIR/$file" ]; then
