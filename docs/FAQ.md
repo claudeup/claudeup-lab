@@ -185,10 +185,24 @@ Mostly. The image manager tries to pull from GHCR first but falls back to buildi
 
 ## How do I get my changes out of a lab?
 
-Two ways:
+For git-tracked changes:
 
 - The git worktree lives on the host at `~/.claudeup-lab/workspaces/<name>/`, so changes are directly accessible from the host filesystem
 - From inside the container, `git push` works if SSH keys or tokens are mounted (both are included as conditional bind mounts)
+
+For files outside the worktree (e.g., something written to `/tmp`):
+
+- From the host, use `docker cp` to pull a file out:
+
+  ```bash
+  docker cp <container>:/tmp/myfile ./myfile
+  ```
+
+- From inside the container, copy it into the worktree so it appears on the host:
+
+  ```bash
+  cp /tmp/myfile /workspaces/<project>/myfile
+  ```
 
 ## I want to try a new plugin without interference from other plugins. Do I need a new profile?
 
