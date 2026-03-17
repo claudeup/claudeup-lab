@@ -48,7 +48,7 @@ if [ -n "${GIT_USER_EMAIL:-}" ]; then
     fi
 fi
 
-GIT_EDITOR="${GIT_EDITOR:-vim}"
+GIT_EDITOR="${GIT_EDITOR:-${EDITOR:-vim}}"
 git config --global core.editor "$GIT_EDITOR"
 echo "[OK] Git core.editor: $GIT_EDITOR"
 
