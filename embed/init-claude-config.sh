@@ -48,6 +48,10 @@ if [ -n "${GIT_USER_EMAIL:-}" ]; then
     fi
 fi
 
+GIT_EDITOR="${GIT_EDITOR:-vim}"
+git config --global core.editor "$GIT_EDITOR"
+echo "[OK] Git core.editor: $GIT_EDITOR"
+
 # Configure GitHub auth
 if [ -n "${GITHUB_TOKEN:-}" ]; then
     if command -v gh &> /dev/null; then
