@@ -590,3 +590,122 @@ func TestFeatureInjection(t *testing.T) {
 		t.Error("should contain go feature")
 	}
 }
+
+func TestExtraEnvAddsNewVars(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		ExtraEnv: map[string]string{
+			"MY_CUSTOM_VAR": "hello",
+			"ANOTHER_VAR":   "world",
+		},
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+
+	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
+	if !ok {
+		t.Fatal("containerEnv should be a map")
+	}
+
+	if envRaw["MY_CUSTOM_VAR"] != "hello" {
+		t.Errorf("MY_CUSTOM_VAR = %v, want hello", envRaw["MY_CUSTOM_VAR"])
+	}
+	if envRaw["ANOTHER_VAR"] != "world" {
+		t.Errorf("ANOTHER_VAR = %v, want world", envRaw["ANOTHER_VAR"])
+	}
+
+	// Hardcoded defaults should still be present
+	if _, exists := envRaw["CLAUDE_CONFIG_DIR"]; !exists {
+		t.Error("hardcoded CLAUDE_CONFIG_DIR should still be present")
+	}
+}
+
+func TestExtraEnvOverridesDefaults(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+		ExtraEnv: map[string]string{
+			"NODE_OPTIONS": "--max-old-space-size=8192",
+		},
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+
+	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
+	if !ok {
+		t.Fatal("containerEnv should be a map")
+	}
+	if envRaw["NODE_OPTIONS"] != "--max-old-space-size=8192" {
+		t.Errorf("NODE_OPTIONS = %v, want --max-old-space-size=8192", envRaw["NODE_OPTIONS"])
+	}
+}
+
+func TestExtraEnvNilIsNoOp(t *testing.T) {
+	dir := t.TempDir()
+
+	config := &lab.DevcontainerConfig{
+		ProjectName:  "myapp",
+		Profile:      "base",
+		ID:           "abc-123",
+		DisplayName:  "myapp-base",
+		Image:        "test:latest",
+		BareRepoPath: "/tmp/bare.git",
+		HomeDir:      t.TempDir(),
+	}
+
+	err := lab.RenderDevcontainer(config, dir)
+	if err != nil {
+		t.Fatalf("RenderDevcontainer: %v", err)
+	}
+
+	outPath := filepath.Join(dir, ".devcontainer", "devcontainer.json")
+	data, _ := os.ReadFile(outPath)
+
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+
+	envRaw, ok := parsed["containerEnv"].(map[string]interface{})
+	if !ok {
+		t.Fatal("containerEnv should be a map")
+	}
+
+	// Should still have all defaults
+	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CLAUDE_PROFILE", "NODE_OPTIONS"} {
+		if _, exists := envRaw[key]; !exists {
+			t.Errorf("default %s should be present when ExtraEnv is nil", key)
+		}
+	}
+}

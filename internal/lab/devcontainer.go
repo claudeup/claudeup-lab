@@ -29,7 +29,8 @@ type DevcontainerConfig struct {
 	BaseProfile  string
 	Features     []string
 	Firewall     bool
-	InitScript   string // Host path to script run after devcontainer setup
+	InitScript   string            // Host path to script run after devcontainer setup
+	ExtraEnv     map[string]string // User-provided env vars that override all defaults
 }
 
 type featureEntry struct {
@@ -84,6 +85,11 @@ func buildDevcontainerJSON(config *DevcontainerConfig) map[string]interface{} {
 		if v != "" {
 			env[k] = v
 		}
+	}
+
+	// Apply user-provided env vars (override anything)
+	for k, v := range config.ExtraEnv {
+		env[k] = v
 	}
 
 	dc := map[string]interface{}{
