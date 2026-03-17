@@ -1,3 +1,4 @@
 /claudeup-lab
 **/CLAUDE.md
 bin/
+.env
