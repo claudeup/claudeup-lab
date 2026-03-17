@@ -26,6 +26,30 @@ claudeup-lab start --feature go --feature rust
 
 Without a version, the default from the registry is used. Unknown feature names are silently ignored.
 
+## How do I pass environment variables into a lab?
+
+Use `--env KEY=VALUE` or `--env-file FILE` on the `start` command:
+
+```bash
+claudeup-lab start --env MY_VAR=hello
+claudeup-lab start --env MY_VAR=hello --env OTHER_VAR=world
+claudeup-lab start --env-file .env
+claudeup-lab start --env-file .env --env OVERRIDE=value
+```
+
+Both flags are optional and combinable. When both are provided, `--env` values take precedence over `--env-file` values for the same key.
+
+The env file format follows Docker conventions:
+
+```
+# Comments and blank lines are ignored
+DATABASE_URL=postgres://localhost/mydb
+API_KEY=sk-1234
+MULTI_WORD=hello world
+```
+
+Environment variables are written into the generated `devcontainer.json` and are available to all processes inside the container. They can override any existing container environment variable, including infrastructure vars like `GITHUB_TOKEN`.
+
 ## What volumes get mounted by default?
 
 **Docker volumes (always created, scoped by lab UUID):**
