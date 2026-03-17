@@ -49,6 +49,8 @@ type StartOptions struct {
 	BaseProfile string
 	Firewall    bool
 	InitScript  string
+	EnvVars     map[string]string
+	EnvFile     string
 }
 
 // Start creates and launches a new lab environment.
@@ -122,6 +124,12 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		return nil, fmt.Errorf("create worktree: %w", err)
 	}
 
+	extraEnv, err := mergeEnvVars(opts.EnvFile, opts.EnvVars)
+	if err != nil {
+		m.worktrees.RemoveWorktree(barePath, worktreePath)
+		return nil, fmt.Errorf("merge env vars: %w", err)
+	}
+
 	// Render devcontainer.json
 	dcConfig := &DevcontainerConfig{
 		ProjectName:  projectName,
@@ -142,6 +150,7 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		Features:     opts.Features,
 		Firewall:     opts.Firewall,
 		InitScript:   opts.InitScript,
+		ExtraEnv:     extraEnv,
 	}
 	if err := RenderDevcontainer(dcConfig, worktreePath); err != nil {
 		m.worktrees.RemoveWorktree(barePath, worktreePath)
@@ -299,4 +308,26 @@ func envOrDefault(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// mergeEnvVars reads an env file (if path is non-empty), then overlays
+// flagVars on top. Flag values win over file values for the same key.
+func mergeEnvVars(envFile string, flagVars map[string]string) (map[string]string, error) {
+	merged := make(map[string]string)
+
+	if envFile != "" {
+		fileVars, err := ParseEnvFile(envFile)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range fileVars {
+			merged[k] = v
+		}
+	}
+
+	for k, v := range flagVars {
+		merged[k] = v
+	}
+
+	return merged, nil
 }
