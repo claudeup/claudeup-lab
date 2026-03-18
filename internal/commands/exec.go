@@ -14,7 +14,7 @@ func newExecCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec [-- command...]",
 		Short: "Run a command inside a running lab",
-		Long:  "Run a command inside a running lab. Without arguments after --, opens an interactive bash shell.",
+		Long:  "Run a command inside a running lab. Without arguments after --, opens an interactive zsh shell.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			mgr := lab.NewManager(defaultBaseDir())
 			resolver := lab.NewResolver(mgr.Store())
@@ -31,7 +31,7 @@ func newExecCmd() *cobra.Command {
 			if dashIdx >= 0 && dashIdx < len(args) {
 				execArgs = append(execArgs, args[dashIdx:]...)
 			} else {
-				execArgs = append(execArgs, "bash")
+				execArgs = append(execArgs, "zsh")
 			}
 
 			devCmd := exec.Command("devcontainer", execArgs...)
