@@ -61,6 +61,11 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
     -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     -x
 
+RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir /home/node/.local/bin \
+    && echo 'eval "$(starship init zsh)"' >> /home/node/.zshrc
+
+COPY --chown=node:node starship.toml /home/node/.config/starship.toml
+
 ARG BUN_VERSION=1.3.10
 ARG BUN_SHA256_X64=f57bc0187e39623de716ba3a389fda5486b2d7be7131a980ba54dc7b733d2e08
 ARG BUN_SHA256_ARM64=fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55636d3
@@ -104,6 +109,8 @@ COPY --chmod=755 init-claude-config.sh /usr/local/bin/
 COPY --chmod=755 init-config-repo.sh /usr/local/bin/
 COPY --chmod=755 init-claudeup.sh /usr/local/bin/
 COPY --chmod=755 init-firewall.sh /usr/local/bin/
+
+RUN chsh -s /bin/zsh node
 
 RUN echo "node ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/node-nopasswd && \
     chmod 0440 /etc/sudoers.d/node-nopasswd
