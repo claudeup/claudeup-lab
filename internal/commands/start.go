@@ -36,16 +36,11 @@ func newStartCmd() *cobra.Command {
 			}
 			opts.EnvVars = envVars
 
-			if opts.InitScript != "" {
-				absPath, err := filepath.Abs(opts.InitScript)
-				if err != nil {
-					return fmt.Errorf("resolve init script path: %w", err)
-				}
-				if _, err := os.Stat(absPath); err != nil {
-					return fmt.Errorf("init script not found: %s", absPath)
-				}
-				opts.InitScript = absPath
+			resolved, err := resolveInitScript(opts.InitScript)
+			if err != nil {
+				return err
 			}
+			opts.InitScript = resolved
 
 			mgr := lab.NewManager(defaultBaseDir())
 
@@ -88,6 +83,22 @@ func newStartCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.EnvFile, "env-file", "", "Read container environment variables from file")
 
 	return cmd
+}
+
+// resolveInitScript validates and resolves an init script path to an absolute path.
+// Returns an empty string if path is empty (no init script specified).
+func resolveInitScript(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve init script path: %w", err)
+	}
+	if _, err := os.Stat(absPath); err != nil {
+		return "", fmt.Errorf("init script not found: %s", absPath)
+	}
+	return absPath, nil
 }
 
 // parseEnvFlags parses a slice of "KEY=VALUE" strings into a map.
