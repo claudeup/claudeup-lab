@@ -86,6 +86,7 @@ func newStartCmd() *cobra.Command {
 }
 
 // resolveInitScript validates and resolves an init script path to an absolute path.
+// It verifies the path exists and refers to a regular file.
 // Returns an empty string if path is empty (no init script specified).
 func resolveInitScript(path string) (string, error) {
 	if path == "" {

@@ -159,17 +159,30 @@ func TestResolveInitScript(t *testing.T) {
 		}
 	})
 
-	t.Run("wraps non-existence errors distinctly from other stat errors", func(t *testing.T) {
-		// Non-existent path should say "not found"
-		_, err := resolveInitScript("/no/such/file.sh")
+	t.Run("errors on inaccessible file", func(t *testing.T) {
+		if os.Getuid() == 0 {
+			t.Skip("test requires non-root user")
+		}
+		tmp := t.TempDir()
+		script := filepath.Join(tmp, "setup.sh")
+		if err := os.WriteFile(script, []byte("#!/bin/bash\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		// Remove read+execute on parent directory so stat fails with permission error
+		if err := os.Chmod(tmp, 0o000); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chmod(tmp, 0o755) })
+
+		_, err := resolveInitScript(script)
 		if err == nil {
-			t.Fatal("expected error")
+			t.Fatal("expected error for inaccessible file")
 		}
-		if !strings.Contains(err.Error(), "not found") {
-			t.Errorf("error %q should contain 'not found'", err.Error())
+		if !strings.Contains(err.Error(), "not accessible") {
+			t.Errorf("error %q should contain 'not accessible'", err.Error())
 		}
-		if strings.Contains(err.Error(), "not accessible") {
-			t.Errorf("non-existent file error should say 'not found', not 'not accessible'")
+		if strings.Contains(err.Error(), "not found") {
+			t.Errorf("permission error should say 'not accessible', not 'not found'")
 		}
 	})
 }
