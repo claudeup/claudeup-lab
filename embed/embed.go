@@ -22,3 +22,6 @@ var InitClaudeup []byte
 
 //go:embed init-firewall.sh
 var InitFirewall []byte
+
+//go:embed starship.toml
+var StarshipConfig []byte

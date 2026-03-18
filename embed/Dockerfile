@@ -61,6 +61,25 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
     -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     -x
 
+ARG STARSHIP_VERSION=1.24.2
+ARG STARSHIP_SHA256_X64=3f12f61883ff324c1dbe7b885fa125d5490960e5cad6a12eeaa34695ec1b5744
+ARG STARSHIP_SHA256_ARM64=56b9ff412bbf374d29b99e5ac09a849124cb37a0a13121e8470df32de53c1ea6
+RUN ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+        STARSHIP_TARGET="x86_64-unknown-linux-gnu"; STARSHIP_SHA256="${STARSHIP_SHA256_X64}"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        STARSHIP_TARGET="aarch64-unknown-linux-musl"; STARSHIP_SHA256="${STARSHIP_SHA256_ARM64}"; \
+    else echo "Unsupported architecture: $ARCH" >&2; exit 1; fi \
+    && curl -fsSL -o /tmp/starship.tar.gz \
+        "https://github.com/starship/starship/releases/download/v${STARSHIP_VERSION}/starship-${STARSHIP_TARGET}.tar.gz" \
+    && echo "${STARSHIP_SHA256}  /tmp/starship.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/starship.tar.gz -C /home/node/.local/bin starship \
+    && chmod 755 /home/node/.local/bin/starship \
+    && rm /tmp/starship.tar.gz \
+    && echo 'eval "$(starship init zsh)"' >> /home/node/.zshrc
+
+COPY --chown=node:node starship.toml /home/node/.config/starship.toml
+
 ARG BUN_VERSION=1.3.10
 ARG BUN_SHA256_X64=f57bc0187e39623de716ba3a389fda5486b2d7be7131a980ba54dc7b733d2e08
 ARG BUN_SHA256_ARM64=fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55636d3
@@ -104,6 +123,8 @@ COPY --chmod=755 init-claude-config.sh /usr/local/bin/
 COPY --chmod=755 init-config-repo.sh /usr/local/bin/
 COPY --chmod=755 init-claudeup.sh /usr/local/bin/
 COPY --chmod=755 init-firewall.sh /usr/local/bin/
+
+RUN chsh -s /bin/zsh node
 
 RUN echo "node ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/node-nopasswd && \
     chmod 0440 /etc/sudoers.d/node-nopasswd
