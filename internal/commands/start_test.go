@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -73,6 +75,114 @@ func TestParseEnvFlags(t *testing.T) {
 		}
 		if got != nil {
 			t.Errorf("expected nil, got %v", got)
+		}
+	})
+}
+
+func TestResolveInitScript(t *testing.T) {
+	t.Run("empty path is a no-op", func(t *testing.T) {
+		got, err := resolveInitScript("")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "" {
+			t.Errorf("got %q, want empty string", got)
+		}
+	})
+
+	t.Run("resolves existing file to absolute path", func(t *testing.T) {
+		tmp := t.TempDir()
+		script := filepath.Join(tmp, "setup.sh")
+		if err := os.WriteFile(script, []byte("#!/bin/bash\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := resolveInitScript(script)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !filepath.IsAbs(got) {
+			t.Errorf("expected absolute path, got %q", got)
+		}
+		if got != script {
+			t.Errorf("got %q, want %q", got, script)
+		}
+	})
+
+	t.Run("resolves relative path to absolute", func(t *testing.T) {
+		tmp := t.TempDir()
+		script := filepath.Join(tmp, "setup.sh")
+		if err := os.WriteFile(script, []byte("#!/bin/bash\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+
+		// Get path relative to cwd
+		cwd, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rel, err := filepath.Rel(cwd, script)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := resolveInitScript(rel)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !filepath.IsAbs(got) {
+			t.Errorf("expected absolute path, got %q", got)
+		}
+		if got != script {
+			t.Errorf("got %q, want %q", got, script)
+		}
+	})
+
+	t.Run("errors on non-existent file", func(t *testing.T) {
+		_, err := resolveInitScript("/no/such/file.sh")
+		if err == nil {
+			t.Fatal("expected error for non-existent file")
+		}
+		if !strings.Contains(err.Error(), "init script not found") {
+			t.Errorf("error %q should contain 'init script not found'", err.Error())
+		}
+	})
+
+	t.Run("errors on directory path", func(t *testing.T) {
+		tmp := t.TempDir()
+		_, err := resolveInitScript(tmp)
+		if err == nil {
+			t.Fatal("expected error for directory path")
+		}
+		if !strings.Contains(err.Error(), "not a regular file") {
+			t.Errorf("error %q should contain 'not a regular file'", err.Error())
+		}
+	})
+
+	t.Run("errors on inaccessible file", func(t *testing.T) {
+		if os.Getuid() == 0 {
+			t.Skip("test requires non-root user")
+		}
+		tmp := t.TempDir()
+		script := filepath.Join(tmp, "setup.sh")
+		if err := os.WriteFile(script, []byte("#!/bin/bash\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		// Remove read+execute on parent directory so stat fails with permission error
+		if err := os.Chmod(tmp, 0o000); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chmod(tmp, 0o755) })
+
+		_, err := resolveInitScript(script)
+		if err == nil {
+			t.Fatal("expected error for inaccessible file")
+		}
+		if !strings.Contains(err.Error(), "not accessible") {
+			t.Errorf("error %q should contain 'not accessible'", err.Error())
+		}
+		if strings.Contains(err.Error(), "not found") {
+			t.Errorf("permission error should say 'not accessible', not 'not found'")
 		}
 	})
 }
