@@ -44,8 +44,11 @@ fi
 
 # Sync symlinks from enabled.json
 if command -v claudeup &> /dev/null && [ -f "$CLAUDEUP_HOME/enabled.json" ]; then
-    claudeup ext sync -y
-    echo "[OK] Extension symlinks synced"
+    if claudeup ext sync -y; then
+        echo "[OK] Extension symlinks synced"
+    else
+        echo "[WARN] claudeup ext sync failed (exit $?), symlinks may be incomplete"
+    fi
 fi
 
 touch "$MARKER_FILE"

@@ -135,8 +135,11 @@ if [ -f "$CLAUDEUP_HOME/enabled.json" ]; then
     done
 
     if command -v claudeup &> /dev/null; then
-        claudeup ext sync -y
-        echo "[OK] Extension item symlinks synced"
+        if claudeup ext sync -y; then
+            echo "[OK] Extension item symlinks synced"
+        else
+            echo "[WARN] claudeup ext sync failed (exit $?), symlinks may be incomplete"
+        fi
     fi
 fi
 
