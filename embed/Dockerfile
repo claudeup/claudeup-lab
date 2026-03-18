@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep fd-find fzf \
     build-essential make \
     python3 \
-    nano vim unzip \
+    nano vim neovim unzip \
     zsh \
     iptables ipset iproute2 dnsutils aggregate \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
