@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     nano vim neovim unzip \
     zsh \
+    autojump \
     iptables ipset iproute2 dnsutils aggregate \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -60,6 +61,13 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
     -a "source /usr/share/doc/fzf/examples/completion.zsh" \
     -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     -x
+
+RUN git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting.git \
+        /home/node/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
+    && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions.git \
+        /home/node/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
+    && git clone --depth 1 https://github.com/agkozak/zsh-z.git \
+        /home/node/.oh-my-zsh/custom/plugins/zsh-z
 
 ARG STARSHIP_VERSION=1.24.2
 ARG STARSHIP_SHA256_X64=3f12f61883ff324c1dbe7b885fa125d5490960e5cad6a12eeaa34695ec1b5744
