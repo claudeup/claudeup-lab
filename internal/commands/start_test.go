@@ -133,6 +133,9 @@ func TestResolveInitScript(t *testing.T) {
 		if !filepath.IsAbs(got) {
 			t.Errorf("expected absolute path, got %q", got)
 		}
+		if got != script {
+			t.Errorf("got %q, want %q", got, script)
+		}
 	})
 
 	t.Run("errors on non-existent file", func(t *testing.T) {
