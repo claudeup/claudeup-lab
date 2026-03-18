@@ -147,4 +147,29 @@ func TestResolveInitScript(t *testing.T) {
 			t.Errorf("error %q should contain 'init script not found'", err.Error())
 		}
 	})
+
+	t.Run("errors on directory path", func(t *testing.T) {
+		tmp := t.TempDir()
+		_, err := resolveInitScript(tmp)
+		if err == nil {
+			t.Fatal("expected error for directory path")
+		}
+		if !strings.Contains(err.Error(), "not a regular file") {
+			t.Errorf("error %q should contain 'not a regular file'", err.Error())
+		}
+	})
+
+	t.Run("wraps non-existence errors distinctly from other stat errors", func(t *testing.T) {
+		// Non-existent path should say "not found"
+		_, err := resolveInitScript("/no/such/file.sh")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "not found") {
+			t.Errorf("error %q should contain 'not found'", err.Error())
+		}
+		if strings.Contains(err.Error(), "not accessible") {
+			t.Errorf("non-existent file error should say 'not found', not 'not accessible'")
+		}
+	})
 }

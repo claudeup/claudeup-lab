@@ -63,10 +63,10 @@ func newStartCmd() *cobra.Command {
 			fmt.Printf("  Profile:  %s\n", meta.Profile)
 			fmt.Println()
 			fmt.Println("Next steps:")
-			fmt.Printf("  claudeup-lab exec   --lab %s -- <command>\n", meta.DisplayName)
-			fmt.Printf("  claudeup-lab exec   --lab %s -- claude\n", meta.DisplayName)
-			fmt.Printf("  claudeup-lab open   --lab %s\n", meta.DisplayName)
-			fmt.Printf("  claudeup-lab stop   --lab %s\n", meta.DisplayName)
+			fmt.Printf("  claudeup-lab exec --lab %s -- <command>\n", meta.DisplayName)
+			fmt.Printf("  claudeup-lab exec --lab %s -- claude\n", meta.DisplayName)
+			fmt.Printf("  claudeup-lab open --lab %s\n", meta.DisplayName)
+			fmt.Printf("  claudeup-lab stop --lab %s\n", meta.DisplayName)
 			return err
 		},
 	}
@@ -95,8 +95,15 @@ func resolveInitScript(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve init script path: %w", err)
 	}
-	if _, err := os.Stat(absPath); err != nil {
+	info, err := os.Stat(absPath)
+	if os.IsNotExist(err) {
 		return "", fmt.Errorf("init script not found: %s", absPath)
+	}
+	if err != nil {
+		return "", fmt.Errorf("init script not accessible: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("init script is not a regular file: %s", absPath)
 	}
 	return absPath, nil
 }
