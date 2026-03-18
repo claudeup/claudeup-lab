@@ -61,7 +61,21 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
     -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     -x
 
-RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir /home/node/.local/bin \
+ARG STARSHIP_VERSION=1.24.2
+ARG STARSHIP_SHA256_X64=3f12f61883ff324c1dbe7b885fa125d5490960e5cad6a12eeaa34695ec1b5744
+ARG STARSHIP_SHA256_ARM64=0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5
+RUN ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+        STARSHIP_ARCH="x86_64"; STARSHIP_SHA256="${STARSHIP_SHA256_X64}"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        STARSHIP_ARCH="aarch64"; STARSHIP_SHA256="${STARSHIP_SHA256_ARM64}"; \
+    else echo "Unsupported architecture: $ARCH" >&2; exit 1; fi \
+    && curl -fsSL -o /tmp/starship.tar.gz \
+        "https://github.com/starship/starship/releases/download/v${STARSHIP_VERSION}/starship-${STARSHIP_ARCH}-unknown-linux-gnu.tar.gz" \
+    && echo "${STARSHIP_SHA256}  /tmp/starship.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/starship.tar.gz -C /home/node/.local/bin starship \
+    && chmod 755 /home/node/.local/bin/starship \
+    && rm /tmp/starship.tar.gz \
     && echo 'eval "$(starship init zsh)"' >> /home/node/.zshrc
 
 COPY --chown=node:node starship.toml /home/node/.config/starship.toml

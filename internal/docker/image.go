@@ -97,6 +97,7 @@ func (im *ImageManager) buildFallback(tag string) error {
 		"init-config-repo.sh":   assets.InitConfigRepo,
 		"init-claudeup.sh":      assets.InitClaudeup,
 		"init-firewall.sh":      assets.InitFirewall,
+		"starship.toml":         assets.StarshipConfig,
 	}
 	for name, content := range files {
 		path := filepath.Join(dir, name)
