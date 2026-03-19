@@ -12,6 +12,10 @@ func defaultBaseDir() string {
 	return filepath.Join(os.Getenv("HOME"), ".claudeup-lab")
 }
 
+// baseDirFn returns the base directory for lab data. It defaults to
+// defaultBaseDir and can be replaced in tests to use a temp directory.
+var baseDirFn = defaultBaseDir
+
 func resolveLab(resolver *lab.Resolver, name string) (*lab.Metadata, error) {
 	if name != "" {
 		return resolver.Resolve(name)

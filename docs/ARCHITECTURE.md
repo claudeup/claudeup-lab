@@ -13,7 +13,8 @@ cmd/claudeup-lab/       Entry point
 internal/
   commands/             Cobra command handlers
   lab/                  Core domain: Manager, Resolver, WorktreeManager,
-                        ProfileManager, DevcontainerConfig, StateStore
+                        ProfileManager, DevcontainerConfig, StateStore,
+                        PresetStore (preset.go), override merging (override.go)
   docker/               Docker CLI wrapper: Client, ImageManager
 embed/                  Embedded Dockerfile, init scripts, features registry
 scripts/                Install script
@@ -31,6 +32,10 @@ scripts/                Install script
 | DevcontainerConfig | lab     | Renders devcontainer.json with mounts, environment variables, and features                                    |
 | StateStore         | lab     | Reads and writes lab metadata as JSON files                                                                   |
 | Client             | docker  | Container and volume operations via the docker CLI                                                            |
+| Preset             | lab     | Reusable lab configuration with name, timestamps, and start options                                           |
+| PresetStore        | lab     | CRUD for preset JSON files in ~/.claudeup-lab/presets/                                                        |
+| StartConfig        | lab     | Resolved start options tracked on lab Metadata for --from-lab                                                 |
+| Override           | lab     | Single field diff between preset and CLI flag values                                                          |
 | ImageManager       | docker  | Pulls images from GHCR, falls back to building from the embedded Dockerfile                                   |
 
 ## Data Flow
@@ -51,6 +56,20 @@ claudeup-lab start --project ~/myapp --profile experimental
 
 Other commands (list, exec, stop, rm) follow a simpler pattern: resolve the lab, then perform a single operation.
 
+**Preset flow:**
+
+```
+preset save --from-lab <name>
+  -> Resolver finds lab by name -> reads StartConfig from Metadata
+  -> Creates Preset from StartConfig -> PresetStore writes JSON
+
+start <preset-name> [--flag overrides]
+  -> PresetStore loads Preset -> converts to StartOptions
+  -> MergeWithOverrides applies CLI flags over preset defaults
+  -> FormatOverrides renders diff-style summary to stderr
+  -> Proceeds with normal start flow using merged options
+```
+
 ## Storage Layout
 
 ```
@@ -58,6 +77,7 @@ Other commands (list, exec, stop, rm) follow a simpler pattern: resolve the lab,
   state/<uuid>.json                    Lab metadata
   repos/<project>.git                  Bare clone (shared across labs of same project)
   workspaces/<display-name>/           Git worktree per lab
+  presets/<name>.json                  Saved preset configurations
 ```
 
 Each lab also creates Docker volumes scoped by UUID to prevent parallel labs from interfering with each other:
@@ -84,3 +104,9 @@ All lab data lives under `~/.claudeup-lab/`, deliberately separate from `~/.clau
 - **Image pull with build fallback** -- the image manager tries to pull from GHCR first. If the registry is unreachable, it builds locally from the embedded Dockerfile. This keeps the tool usable offline.
 
 - **Fuzzy lab resolution** -- labs can be identified by exact UUID, display name, UUID prefix, project name, profile name, or inferred from the current working directory. The resolver tries each in order, so users rarely need to type a full UUID.
+
+- **Per-lab StartConfig tracking** -- resolved start options are stored on Metadata so any lab (running or stopped) can be a preset source. The StartConfig is deleted automatically when the lab is removed.
+
+- **Explicit Preset struct** -- mirrors StartOptions fields but is a separate type for serialization stability. Conversion functions (`PresetFromStartOptions`, `Preset.ToStartOptions`) bridge the two.
+
+- **Diff-style override display** -- when starting from a preset with overrides, changed values are shown with `-`/`+` markers. Flags that match the preset value produce no diff output.

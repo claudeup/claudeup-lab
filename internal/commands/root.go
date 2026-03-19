@@ -33,6 +33,7 @@ without affecting your host setup.`,
 	cmd.AddCommand(newStopCmd())
 	cmd.AddCommand(newRmCmd())
 	cmd.AddCommand(newDoctorCmd())
+	cmd.AddCommand(newPresetCmd())
 
 	return cmd
 }

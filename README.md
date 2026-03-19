@@ -58,21 +58,41 @@ claudeup-lab stop --lab myproject-experimental
 
 # Destroy a lab completely
 claudeup-lab rm --lab myproject-experimental
+
+# Save a lab's configuration as a reusable preset
+claudeup-lab preset save my-config --from-lab myproject-experimental
+
+# Start a lab from a saved preset
+claudeup-lab start my-config
+
+# Start with overrides
+claudeup-lab start my-config --branch lab/experiment
+
+# List saved presets
+claudeup-lab preset list
+
+# View preset details
+claudeup-lab preset show my-config
 ```
 
 ## Commands
 
-| Command  | Description                           |
-| -------- | ------------------------------------- |
-| `start`  | Create and start a lab                |
-| `list`   | Show all labs and their status        |
-| `exec`   | Run a command inside a running lab    |
-| `open`   | Attach VS Code to a running lab       |
-| `stop`   | Stop a lab (volumes persist)          |
-| `rm`     | Destroy a lab and all its data        |
-| `doctor` | Check system health and prerequisites |
+| Command  | Description                                              |
+| -------- | -------------------------------------------------------- |
+| `start`  | Create and start a lab                                   |
+| `list`   | Show all labs and their status                           |
+| `exec`   | Run a command inside a running lab                       |
+| `open`   | Attach VS Code to a running lab                          |
+| `stop`   | Stop a lab (volumes persist)                             |
+| `rm`     | Destroy a lab and all its data                           |
+| `preset` | Save, list, show, and delete reusable lab configurations |
+| `doctor` | Check system health and prerequisites                    |
 
 ### `start` flags
+
+Usage: `claudeup-lab start [preset-name] [flags]`
+
+When a preset name is given as a positional argument, its saved values are used as defaults. Any flags provided on the command line override the preset values. Changed fields are displayed with diff-style `-`/`+` markers before the lab starts.
 
 | Flag                     | Default               | Description                                                                |
 | ------------------------ | --------------------- | -------------------------------------------------------------------------- |
@@ -84,6 +104,8 @@ claudeup-lab rm --lab myproject-experimental
 | `--base-profile <name>`  | None                  | Apply a base profile first, then overlay with `--profile`                  |
 | `--firewall`             | Off                   | Enable container firewall restricting network to allowed services          |
 | `--init-script <path>`   | None                  | Host script to run after devcontainer setup (runs as node, sudo available) |
+| `--env <KEY=VALUE>`      | None                  | Set container environment variable (repeatable)                            |
+| `--env-file <path>`      | None                  | Read container environment variables from file                             |
 
 ### Environment variables
 
@@ -120,6 +142,64 @@ claudeup-lab exec --lab myproject-experimental   # display name
 claudeup-lab exec --lab 976ae3b3                 # partial UUID
 claudeup-lab exec                                # inferred from cwd
 ```
+
+## Presets
+
+Presets are saved lab configurations that you can reuse. Instead of remembering which flags to pass every time you start a lab, save the configuration once and start from it by name.
+
+### Saving a preset
+
+The easiest way to create a preset is from an existing lab:
+
+```bash
+claudeup-lab preset save my-config --from-lab myproject-experimental
+```
+
+This captures the lab's resolved start options -- project, profile, branch, features, environment variables, and all other flags that were used when the lab was created.
+
+You can also create a preset from explicit flags without a running lab:
+
+```bash
+claudeup-lab preset save gpu-lab --project ~/code/ml-project --profile gpu --feature python --env CUDA_VISIBLE_DEVICES=0
+```
+
+### Starting from a preset
+
+Pass the preset name as a positional argument to `start`:
+
+```bash
+claudeup-lab start my-config
+```
+
+Any flag provided on the command line overrides the preset value. Changed fields are displayed with diff-style markers before the lab starts:
+
+```bash
+claudeup-lab start my-config --branch lab/experiment
+# Using preset 'my-config'
+#   project:      /Users/you/code/myproject
+#   profile:      experimental
+# - branch:       lab/experimental
+# + branch:       lab/experiment
+```
+
+Flags that match the preset value produce no diff output.
+
+### Managing presets
+
+```bash
+# List all saved presets
+claudeup-lab preset list
+
+# View details of a specific preset
+claudeup-lab preset show my-config
+
+# Delete a preset
+claudeup-lab preset delete my-config
+```
+
+### Sharing presets
+
+Preset files are human-readable JSON stored in `~/.claudeup-lab/presets/`. Each preset is a single `<name>.json` file that can be copied between machines.
 
 ## How It Works
 

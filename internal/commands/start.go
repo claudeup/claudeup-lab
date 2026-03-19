@@ -9,6 +9,7 @@ import (
 
 	"github.com/claudeup/claudeup-lab/internal/lab"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func newStartCmd() *cobra.Command {
@@ -17,16 +18,10 @@ func newStartCmd() *cobra.Command {
 	var envFlags []string
 
 	cmd := &cobra.Command{
-		Use:   "start",
+		Use:   "start [preset-name]",
 		Short: "Create and start a lab",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if opts.Project == "" {
-				cwd, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf("get working directory: %w", err)
-				}
-				opts.Project = cwd
-			}
 			opts.Features = features
 
 			// Parse --env KEY=VALUE flags into map
@@ -42,9 +37,45 @@ func newStartCmd() *cobra.Command {
 			}
 			opts.InitScript = resolved
 
-			mgr := lab.NewManager(defaultBaseDir())
+			mgr := lab.NewManager(baseDirFn())
 
-			meta, err := mgr.Start(&opts)
+			// Determine the final start options, handling preset if specified.
+			finalOpts := &opts
+			if len(args) > 0 {
+				presetName := args[0]
+				preset, loadErr := mgr.Presets().Load(presetName)
+				if loadErr != nil {
+					if errors.Is(loadErr, os.ErrNotExist) {
+						return fmt.Errorf("preset '%s' not found", presetName)
+					}
+					return fmt.Errorf("failed to load preset %q: %w", presetName, loadErr)
+				}
+
+				baseOpts := preset.ToStartOptions()
+
+				// Detect which flags were explicitly set on the command line.
+				changed := make(map[string]bool)
+				cmd.Flags().Visit(func(f *pflag.Flag) {
+					changed[f.Name] = true
+				})
+
+				merged, overrides := lab.MergeWithOverrides(baseOpts, &opts, changed)
+				finalOpts = merged
+
+				// Print preset summary to stderr.
+				fmt.Fprint(cmd.ErrOrStderr(), lab.FormatOverrides(preset, overrides))
+			}
+
+			// Apply cwd default for project only if still empty after preset merge.
+			if finalOpts.Project == "" {
+				cwd, cwdErr := os.Getwd()
+				if cwdErr != nil {
+					return fmt.Errorf("get working directory: %w", cwdErr)
+				}
+				finalOpts.Project = cwd
+			}
+
+			meta, err := mgr.Start(finalOpts)
 			if err != nil && meta == nil {
 				return err
 			}

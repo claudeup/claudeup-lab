@@ -2,3 +2,9 @@
 **/CLAUDE.md
 bin/
 .env
+backlog/
+BUSINESS.md
+DESIGN.md
+ARCHITECTURE.md
+TRASH/
+TRASH-FILES.md

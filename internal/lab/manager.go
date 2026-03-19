@@ -18,6 +18,7 @@ import (
 type Manager struct {
 	baseDir   string
 	store     *StateStore
+	presets   *PresetStore
 	worktrees *WorktreeManager
 	profiles  *ProfileManager
 	docker    *docker.Client
@@ -28,6 +29,7 @@ func NewManager(baseDir string) *Manager {
 	return &Manager{
 		baseDir:   baseDir,
 		store:     NewStateStore(filepath.Join(baseDir, "state")),
+		presets:   NewPresetStore(filepath.Join(baseDir, "presets")),
 		worktrees: NewWorktreeManager(filepath.Join(baseDir, "repos")),
 		profiles:  NewProfileManager(filepath.Join(ClaudeupHome(), "profiles")),
 		docker:    docker.NewClient(),
@@ -36,6 +38,7 @@ func NewManager(baseDir string) *Manager {
 }
 
 func (m *Manager) Store() *StateStore          { return m.store }
+func (m *Manager) Presets() *PresetStore       { return m.presets }
 func (m *Manager) Docker() *docker.Client      { return m.docker }
 func (m *Manager) Worktrees() *WorktreeManager { return m.worktrees }
 
@@ -194,12 +197,32 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		Branch:      branch,
 		Created:     time.Now().UTC(),
 		Snapshot:    snapshotName,
+		StartConfig: StartConfigFromResolved(projectPath, profile, branch, opts),
 	}
 	if err := m.store.Save(meta); err != nil {
 		return nil, fmt.Errorf("save metadata: %w", err)
 	}
 
 	return meta, postCreateErr
+}
+
+// StartConfigFromResolved builds a StartConfig from the resolved local
+// variables in Manager.Start (project, profile, branch) and copies the
+// remaining fields from opts. The resolved params are passed explicitly
+// because opts may still hold raw user input.
+func StartConfigFromResolved(project, profile, branch string, opts *StartOptions) *StartConfig {
+	return &StartConfig{
+		Project:     project,
+		Profile:     profile,
+		Branch:      branch,
+		LabName:     opts.Name,
+		Features:    copySlice(opts.Features),
+		BaseProfile: opts.BaseProfile,
+		Firewall:    opts.Firewall,
+		InitScript:  opts.InitScript,
+		EnvVars:     copyMap(opts.EnvVars),
+		EnvFile:     opts.EnvFile,
+	}
 }
 
 // LabStatus returns the running status of a lab.
