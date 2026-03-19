@@ -49,6 +49,10 @@ func newPresetSaveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
+			if err := lab.ValidatePresetName(name); err != nil {
+				return err
+			}
+
 			mgr := lab.NewManager(baseDirFn())
 
 			// Check mutual exclusivity: --from-lab vs start flags
@@ -130,17 +134,14 @@ func newPresetSaveCmd() *cobra.Command {
 					return nil
 				}
 			} else if loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
-				// File exists but failed to load. This could be a corrupt file
-				// or a name validation error. Only treat it as corrupt if the
-				// file actually exists on disk.
-				presetPath := filepath.Join(baseDirFn(), "presets", name+".json")
-				if _, statErr := os.Stat(presetPath); statErr == nil {
-					fmt.Fprintf(os.Stderr, "Warning: existing preset '%s' is corrupt: %v\n", name, loadErr)
-					if !force {
-						if !confirm(fmt.Sprintf("Overwrite corrupt preset '%s'?", name)) {
-							fmt.Println("Aborted.")
-							return nil
-						}
+				// Failed to load an existing preset. This could be a corrupt file
+				// or a name validation error. Warn without probing the filesystem
+				// with the raw name to avoid path traversal.
+				fmt.Fprintf(os.Stderr, "Warning: existing preset '%s' could not be loaded: %v\n", name, loadErr)
+				if !force {
+					if !confirm(fmt.Sprintf("Overwrite preset '%s' despite load error?", name)) {
+						fmt.Println("Aborted.")
+						return nil
 					}
 				}
 			}

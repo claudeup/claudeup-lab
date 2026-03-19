@@ -36,7 +36,7 @@ func NewPresetStore(dir string) *PresetStore {
 }
 
 func (s *PresetStore) Save(p *Preset) error {
-	if err := validatePresetName(p.Name); err != nil {
+	if err := ValidatePresetName(p.Name); err != nil {
 		return err
 	}
 
@@ -58,7 +58,7 @@ func (s *PresetStore) Save(p *Preset) error {
 }
 
 func (s *PresetStore) Load(name string) (*Preset, error) {
-	if err := validatePresetName(name); err != nil {
+	if err := ValidatePresetName(name); err != nil {
 		return nil, err
 	}
 
@@ -107,7 +107,7 @@ func (s *PresetStore) List() ([]*Preset, error) {
 }
 
 func (s *PresetStore) Delete(name string) error {
-	if err := validatePresetName(name); err != nil {
+	if err := ValidatePresetName(name); err != nil {
 		return err
 	}
 
@@ -118,7 +118,8 @@ func (s *PresetStore) Delete(name string) error {
 	return nil
 }
 
-func validatePresetName(name string) error {
+// ValidatePresetName checks whether name is a valid preset name.
+func ValidatePresetName(name string) error {
 	if name == "" {
 		return fmt.Errorf("preset name must not be empty")
 	}
