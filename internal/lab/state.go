@@ -9,18 +9,35 @@ import (
 	"time"
 )
 
+// StartConfig records the fully resolved start flags for a lab instance.
+// Stored as part of Metadata so that preset save --from-lab can reconstruct
+// the exact configuration that was used to start the lab.
+type StartConfig struct {
+	Project     string            `json:"project"`
+	Profile     string            `json:"profile"`
+	Branch      string            `json:"branch"`
+	LabName     string            `json:"name_flag"`
+	Features    []string          `json:"features,omitempty"`
+	BaseProfile string            `json:"base_profile,omitempty"`
+	Firewall    bool              `json:"firewall,omitempty"`
+	InitScript  string            `json:"init_script,omitempty"`
+	EnvVars     map[string]string `json:"env_vars,omitempty"`
+	EnvFile     string            `json:"env_file,omitempty"`
+}
+
 // Metadata holds persisted state for a single lab instance.
 type Metadata struct {
-	ID          string    `json:"id"`
-	DisplayName string    `json:"display_name"`
-	Project     string    `json:"project"`
-	ProjectName string    `json:"project_name"`
-	Profile     string    `json:"profile"`
-	BareRepo    string    `json:"bare_repo"`
-	Worktree    string    `json:"worktree"`
-	Branch      string    `json:"branch"`
-	Created     time.Time `json:"created"`
-	Snapshot    string    `json:"snapshot,omitempty"`
+	ID          string       `json:"id"`
+	DisplayName string       `json:"display_name"`
+	Project     string       `json:"project"`
+	ProjectName string       `json:"project_name"`
+	Profile     string       `json:"profile"`
+	BareRepo    string       `json:"bare_repo"`
+	Worktree    string       `json:"worktree"`
+	Branch      string       `json:"branch"`
+	Created     time.Time    `json:"created"`
+	Snapshot    string       `json:"snapshot,omitempty"`
+	StartConfig *StartConfig `json:"start_config,omitempty"`
 }
 
 // StateStore reads and writes lab metadata JSON files in a directory.
