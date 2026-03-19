@@ -18,6 +18,7 @@ import (
 type Manager struct {
 	baseDir   string
 	store     *StateStore
+	presets   *PresetStore
 	worktrees *WorktreeManager
 	profiles  *ProfileManager
 	docker    *docker.Client
@@ -28,6 +29,7 @@ func NewManager(baseDir string) *Manager {
 	return &Manager{
 		baseDir:   baseDir,
 		store:     NewStateStore(filepath.Join(baseDir, "state")),
+		presets:   NewPresetStore(filepath.Join(baseDir, "presets")),
 		worktrees: NewWorktreeManager(filepath.Join(baseDir, "repos")),
 		profiles:  NewProfileManager(filepath.Join(ClaudeupHome(), "profiles")),
 		docker:    docker.NewClient(),
@@ -36,6 +38,7 @@ func NewManager(baseDir string) *Manager {
 }
 
 func (m *Manager) Store() *StateStore          { return m.store }
+func (m *Manager) Presets() *PresetStore       { return m.presets }
 func (m *Manager) Docker() *docker.Client      { return m.docker }
 func (m *Manager) Worktrees() *WorktreeManager { return m.worktrees }
 
