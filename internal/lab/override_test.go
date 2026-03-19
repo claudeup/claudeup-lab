@@ -549,3 +549,66 @@ func TestFormatOverridesEnvWithOverride(t *testing.T) {
 		t.Errorf("missing + env line in:\n%s", output)
 	}
 }
+
+func TestMergeWithOverridesSameValueProducesNoOverride(t *testing.T) {
+	base := &lab.StartOptions{
+		Project:  "/Users/mark/code/gstack",
+		Branch:   "lab/zsh",
+		Firewall: true,
+		Features: []string{"go:1.23"},
+		EnvVars:  map[string]string{"KEY": "val"},
+	}
+	flags := &lab.StartOptions{
+		Branch:   "lab/zsh",                       // same value
+		Firewall: true,                            // same value
+		Features: []string{"go:1.23"},             // same value
+		EnvVars:  map[string]string{"KEY": "val"}, // same value
+	}
+	changed := map[string]bool{
+		"branch":   true,
+		"firewall": true,
+		"feature":  true,
+		"env":      true,
+	}
+
+	merged, overrides := lab.MergeWithOverrides(base, flags, changed)
+
+	if len(overrides) != 0 {
+		t.Errorf("expected 0 overrides for same values, got %d: %+v", len(overrides), overrides)
+	}
+	// Merged values should still reflect the flags even though no override was recorded.
+	if merged.Branch != "lab/zsh" {
+		t.Errorf("merged.Branch = %q, want %q", merged.Branch, "lab/zsh")
+	}
+	if !merged.Firewall {
+		t.Error("merged.Firewall = false, want true")
+	}
+}
+
+func TestMergeWithOverridesFlagsNotMutated(t *testing.T) {
+	base := &lab.StartOptions{
+		Features: []string{"node:20"},
+		EnvVars:  map[string]string{"OLD": "val"},
+	}
+	flags := &lab.StartOptions{
+		Features: []string{"go:1.23"},
+		EnvVars:  map[string]string{"NEW": "val"},
+	}
+	changed := map[string]bool{
+		"feature": true,
+		"env":     true,
+	}
+
+	merged, _ := lab.MergeWithOverrides(base, flags, changed)
+
+	// Mutating merged should not affect flags.
+	merged.Features[0] = "MUTATED"
+	merged.EnvVars["INJECTED"] = "bad"
+
+	if flags.Features[0] != "go:1.23" {
+		t.Errorf("flags.Features mutated to %v", flags.Features)
+	}
+	if len(flags.EnvVars) != 1 || flags.EnvVars["NEW"] != "val" {
+		t.Errorf("flags.EnvVars mutated to %v", flags.EnvVars)
+	}
+}

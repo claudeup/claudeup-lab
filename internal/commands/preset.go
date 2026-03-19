@@ -121,12 +121,27 @@ func newPresetSaveCmd() *cobra.Command {
 				preset = lab.PresetFromStartOptions(name, &opts)
 			}
 
-			// Check for existing preset
-			_, err := mgr.Presets().Load(name)
-			if err == nil && !force {
+			// Check for existing preset before saving.
+			_, loadErr := mgr.Presets().Load(name)
+			if loadErr == nil && !force {
+				// Preset exists and is valid -- confirm overwrite.
 				if !confirm(fmt.Sprintf("Preset '%s' already exists. Overwrite?", name)) {
 					fmt.Println("Aborted.")
 					return nil
+				}
+			} else if loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
+				// File exists but failed to load. This could be a corrupt file
+				// or a name validation error. Only treat it as corrupt if the
+				// file actually exists on disk.
+				presetPath := filepath.Join(baseDirFn(), "presets", name+".json")
+				if _, statErr := os.Stat(presetPath); statErr == nil {
+					fmt.Fprintf(os.Stderr, "Warning: existing preset '%s' is corrupt: %v\n", name, loadErr)
+					if !force {
+						if !confirm(fmt.Sprintf("Overwrite corrupt preset '%s'?", name)) {
+							fmt.Println("Aborted.")
+							return nil
+						}
+					}
 				}
 			}
 

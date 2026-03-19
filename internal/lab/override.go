@@ -43,41 +43,53 @@ func MergeWithOverrides(base *StartOptions, flags *StartOptions, changed map[str
 		oldVal := f.get(base)
 		newVal := f.get(flags)
 		f.set(merged, flags)
-		overrides = append(overrides, Override{
-			Field:    f.flag,
-			OldValue: oldVal,
-			NewValue: newVal,
-		})
+		if oldVal != newVal {
+			overrides = append(overrides, Override{
+				Field:    f.flag,
+				OldValue: oldVal,
+				NewValue: newVal,
+			})
+		}
 	}
 
 	// Bool: firewall
 	if changed["firewall"] {
-		overrides = append(overrides, Override{
-			Field:    "firewall",
-			OldValue: fmt.Sprintf("%t", base.Firewall),
-			NewValue: fmt.Sprintf("%t", flags.Firewall),
-		})
 		merged.Firewall = flags.Firewall
+		if base.Firewall != flags.Firewall {
+			overrides = append(overrides, Override{
+				Field:    "firewall",
+				OldValue: fmt.Sprintf("%t", base.Firewall),
+				NewValue: fmt.Sprintf("%t", flags.Firewall),
+			})
+		}
 	}
 
 	// Slice: feature -> Features
 	if changed["feature"] {
-		overrides = append(overrides, Override{
-			Field:    "feature",
-			OldValue: formatSlice(base.Features),
-			NewValue: formatSlice(flags.Features),
-		})
+		oldVal := formatSlice(base.Features)
+		newVal := formatSlice(flags.Features)
 		merged.Features = copySlice(flags.Features)
+		if oldVal != newVal {
+			overrides = append(overrides, Override{
+				Field:    "feature",
+				OldValue: oldVal,
+				NewValue: newVal,
+			})
+		}
 	}
 
 	// Map: env -> EnvVars
 	if changed["env"] {
-		overrides = append(overrides, Override{
-			Field:    "env",
-			OldValue: formatEnvMap(base.EnvVars),
-			NewValue: formatEnvMap(flags.EnvVars),
-		})
+		oldVal := formatEnvMap(base.EnvVars)
+		newVal := formatEnvMap(flags.EnvVars)
 		merged.EnvVars = copyMap(flags.EnvVars)
+		if oldVal != newVal {
+			overrides = append(overrides, Override{
+				Field:    "env",
+				OldValue: oldVal,
+				NewValue: newVal,
+			})
+		}
 	}
 
 	return merged, overrides

@@ -435,3 +435,57 @@ func TestFormatPresetFieldsRepeatedValues(t *testing.T) {
 		t.Errorf("third env-var line should contain ZZZ=last, got %q", envLines[2])
 	}
 }
+
+func TestPresetFromStartOptionsDeepCopy(t *testing.T) {
+	opts := &lab.StartOptions{
+		Features: []string{"go:1.23"},
+		EnvVars:  map[string]string{"KEY": "val"},
+	}
+
+	p := lab.PresetFromStartOptions("test", opts)
+
+	// Mutating opts should not affect the preset.
+	opts.Features[0] = "MUTATED"
+	opts.EnvVars["INJECTED"] = "bad"
+
+	if p.Features[0] != "go:1.23" {
+		t.Errorf("preset.Features mutated to %v", p.Features)
+	}
+	if len(p.EnvVars) != 1 || p.EnvVars["KEY"] != "val" {
+		t.Errorf("preset.EnvVars mutated to %v", p.EnvVars)
+	}
+}
+
+func TestToStartOptionsDeepCopy(t *testing.T) {
+	p := &lab.Preset{
+		Name:     "test",
+		Features: []string{"go:1.23"},
+		EnvVars:  map[string]string{"KEY": "val"},
+	}
+
+	opts := p.ToStartOptions()
+
+	// Mutating opts should not affect the preset.
+	opts.Features[0] = "MUTATED"
+	opts.EnvVars["INJECTED"] = "bad"
+
+	if p.Features[0] != "go:1.23" {
+		t.Errorf("preset.Features mutated to %v", p.Features)
+	}
+	if len(p.EnvVars) != 1 || p.EnvVars["KEY"] != "val" {
+		t.Errorf("preset.EnvVars mutated to %v", p.EnvVars)
+	}
+}
+
+func TestValidatePresetNameEmptyDistinctMessage(t *testing.T) {
+	// Use Save with empty name to trigger validation.
+	dir := t.TempDir()
+	store := lab.NewPresetStore(dir)
+	err := store.Save(&lab.Preset{Name: ""})
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if !strings.Contains(err.Error(), "must not be empty") {
+		t.Errorf("expected 'must not be empty' message, got: %s", err.Error())
+	}
+}

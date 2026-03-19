@@ -99,6 +99,10 @@ func (s *PresetStore) List() ([]*Preset, error) {
 		presets = append(presets, p)
 	}
 
+	sort.Slice(presets, func(i, j int) bool {
+		return presets[i].Name < presets[j].Name
+	})
+
 	return presets, nil
 }
 
@@ -116,7 +120,7 @@ func (s *PresetStore) Delete(name string) error {
 
 func validatePresetName(name string) error {
 	if name == "" {
-		return fmt.Errorf("preset name %q contains invalid characters (allowed: A-Z, a-z, 0-9, '.', '_', '-')", name)
+		return fmt.Errorf("preset name must not be empty")
 	}
 	if strings.HasPrefix(name, ".") {
 		return fmt.Errorf("preset name %q contains invalid characters (allowed: A-Z, a-z, 0-9, '.', '_', '-')", name)
@@ -139,11 +143,11 @@ func PresetFromStartOptions(name string, opts *StartOptions) *Preset {
 		Profile:     opts.Profile,
 		Branch:      opts.Branch,
 		LabName:     opts.Name,
-		Features:    opts.Features,
+		Features:    copySlice(opts.Features),
 		BaseProfile: opts.BaseProfile,
 		Firewall:    opts.Firewall,
 		InitScript:  opts.InitScript,
-		EnvVars:     opts.EnvVars,
+		EnvVars:     copyMap(opts.EnvVars),
 		EnvFile:     opts.EnvFile,
 	}
 }
@@ -155,11 +159,11 @@ func (p *Preset) ToStartOptions() *StartOptions {
 		Profile:     p.Profile,
 		Branch:      p.Branch,
 		Name:        p.LabName,
-		Features:    p.Features,
+		Features:    copySlice(p.Features),
 		BaseProfile: p.BaseProfile,
 		Firewall:    p.Firewall,
 		InitScript:  p.InitScript,
-		EnvVars:     p.EnvVars,
+		EnvVars:     copyMap(p.EnvVars),
 		EnvFile:     p.EnvFile,
 	}
 }
