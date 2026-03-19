@@ -187,7 +187,7 @@ func FormatPresetFields(p *Preset) string {
 		add("branch", p.Branch)
 	}
 	if p.LabName != "" {
-		add("lab-name", p.LabName)
+		add("name", p.LabName)
 	}
 	if p.BaseProfile != "" {
 		add("base-profile", p.BaseProfile)

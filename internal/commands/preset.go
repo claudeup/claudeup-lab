@@ -31,7 +31,7 @@ func newPresetCmd() *cobra.Command {
 // Used to detect mutual exclusivity with --from-lab.
 // SYNC: must match the flags registered in newStartCmd() and newPresetSaveCmd().
 var startFlagNames = []string{
-	"project", "profile", "branch", "feature", "base-profile",
+	"project", "profile", "branch", "name", "feature", "base-profile",
 	"firewall", "init-script", "env", "env-file",
 }
 
@@ -165,6 +165,7 @@ func newPresetSaveCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.Project, "project", "", "Project directory")
 	cmd.Flags().StringVar(&opts.Profile, "profile", "", "claudeup profile")
 	cmd.Flags().StringVar(&opts.Branch, "branch", "", "Git branch name")
+	cmd.Flags().StringVar(&opts.Name, "name", "", "Display name for the lab")
 	cmd.Flags().StringSliceVar(&features, "feature", nil, "Devcontainer feature (repeatable)")
 	cmd.Flags().StringVar(&opts.BaseProfile, "base-profile", "", "Base profile")
 	cmd.Flags().BoolVar(&opts.Firewall, "firewall", false, "Enable container firewall")
@@ -361,6 +362,20 @@ func newPresetShowCmd() *cobra.Command {
 
 // presetFromStartConfig creates a Preset from a lab's tracked StartConfig.
 func presetFromStartConfig(name string, cfg *lab.StartConfig) *lab.Preset {
+	var features []string
+	if cfg.Features != nil {
+		features = make([]string, len(cfg.Features))
+		copy(features, cfg.Features)
+	}
+
+	var envVars map[string]string
+	if cfg.EnvVars != nil {
+		envVars = make(map[string]string, len(cfg.EnvVars))
+		for k, v := range cfg.EnvVars {
+			envVars[k] = v
+		}
+	}
+
 	return &lab.Preset{
 		Name:        name,
 		CreatedAt:   time.Now().UTC(),
@@ -368,11 +383,11 @@ func presetFromStartConfig(name string, cfg *lab.StartConfig) *lab.Preset {
 		Profile:     cfg.Profile,
 		Branch:      cfg.Branch,
 		LabName:     cfg.LabName,
-		Features:    cfg.Features,
+		Features:    features,
 		BaseProfile: cfg.BaseProfile,
 		Firewall:    cfg.Firewall,
 		InitScript:  cfg.InitScript,
-		EnvVars:     cfg.EnvVars,
+		EnvVars:     envVars,
 		EnvFile:     cfg.EnvFile,
 	}
 }
