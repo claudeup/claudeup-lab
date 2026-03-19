@@ -197,12 +197,32 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 		Branch:      branch,
 		Created:     time.Now().UTC(),
 		Snapshot:    snapshotName,
+		StartConfig: StartConfigFromResolved(projectPath, profile, branch, opts),
 	}
 	if err := m.store.Save(meta); err != nil {
 		return nil, fmt.Errorf("save metadata: %w", err)
 	}
 
 	return meta, postCreateErr
+}
+
+// StartConfigFromResolved builds a StartConfig from the resolved local
+// variables in Manager.Start (project, profile, branch) and copies the
+// remaining fields from opts. The resolved params are passed explicitly
+// because opts may still hold raw user input.
+func StartConfigFromResolved(project, profile, branch string, opts *StartOptions) *StartConfig {
+	return &StartConfig{
+		Project:     project,
+		Profile:     profile,
+		Branch:      branch,
+		LabName:     opts.Name,
+		Features:    opts.Features,
+		BaseProfile: opts.BaseProfile,
+		Firewall:    opts.Firewall,
+		InitScript:  opts.InitScript,
+		EnvVars:     opts.EnvVars,
+		EnvFile:     opts.EnvFile,
+	}
 }
 
 // LabStatus returns the running status of a lab.
