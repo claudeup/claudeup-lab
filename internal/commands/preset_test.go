@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -308,30 +309,21 @@ func TestPresetSave_MissingName(t *testing.T) {
 func TestPresetSave_SuccessOutput(t *testing.T) {
 	setupPresetTestEnv(t)
 
-	// Capture stdout
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	cmd := NewRootCmd()
-	cmd.SetArgs([]string{
-		"preset", "save", "output-test",
-		"--project", "/tmp/proj",
-		"--profile", "zsh",
-		"--branch", "lab/zsh",
+	var err error
+	output := captureStdout(t, func() {
+		cmd := NewRootCmd()
+		cmd.SetArgs([]string{
+			"preset", "save", "output-test",
+			"--project", "/tmp/proj",
+			"--profile", "zsh",
+			"--branch", "lab/zsh",
+		})
+		err = cmd.Execute()
 	})
-	err := cmd.Execute()
-
-	w.Close()
-	os.Stdout = old
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	buf := make([]byte, 4096)
-	n, _ := r.Read(buf)
-	output := string(buf[:n])
 
 	if !strings.Contains(output, "Preset saved: output-test") {
 		t.Errorf("output should contain 'Preset saved: output-test', got:\n%s", output)
@@ -517,24 +509,16 @@ func TestPresetDelete_SuccessOutput(t *testing.T) {
 		t.Fatalf("failed to save preset: %v", err)
 	}
 
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	cmd := NewRootCmd()
-	cmd.SetArgs([]string{"preset", "delete", "output-del", "--force"})
-	err := cmd.Execute()
-
-	w.Close()
-	os.Stdout = old
+	var err error
+	output := captureStdout(t, func() {
+		cmd := NewRootCmd()
+		cmd.SetArgs([]string{"preset", "delete", "output-del", "--force"})
+		err = cmd.Execute()
+	})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	buf := make([]byte, 4096)
-	n, _ := r.Read(buf)
-	output := string(buf[:n])
 
 	if !strings.Contains(output, "Deleted preset: output-del") {
 		t.Errorf("output should contain 'Deleted preset: output-del', got:\n%s", output)
@@ -553,9 +537,8 @@ func captureStdout(t *testing.T, fn func()) string {
 	w.Close()
 	os.Stdout = old
 
-	buf := make([]byte, 8192)
-	n, _ := r.Read(buf)
-	return string(buf[:n])
+	out, _ := io.ReadAll(r)
+	return string(out)
 }
 
 // savePresetDirect saves a preset directly via the store for test setup.
@@ -896,8 +879,8 @@ func TestPresetShow_OmitsEmptyFields(t *testing.T) {
 	if strings.Contains(output, "init-script:") {
 		t.Errorf("should not show empty init-script, got:\n%s", output)
 	}
-	if strings.Contains(output, "env-vars:") {
-		t.Errorf("should not show empty env-vars, got:\n%s", output)
+	if strings.Contains(output, "env:") {
+		t.Errorf("should not show empty env, got:\n%s", output)
 	}
 	if strings.Contains(output, "env-file:") {
 		t.Errorf("should not show empty env-file, got:\n%s", output)

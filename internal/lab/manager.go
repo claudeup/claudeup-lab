@@ -211,16 +211,30 @@ func (m *Manager) Start(opts *StartOptions) (*Metadata, error) {
 // remaining fields from opts. The resolved params are passed explicitly
 // because opts may still hold raw user input.
 func StartConfigFromResolved(project, profile, branch string, opts *StartOptions) *StartConfig {
+	var featuresCopy []string
+	if opts.Features != nil {
+		featuresCopy = make([]string, len(opts.Features))
+		copy(featuresCopy, opts.Features)
+	}
+
+	var envVarsCopy map[string]string
+	if opts.EnvVars != nil {
+		envVarsCopy = make(map[string]string, len(opts.EnvVars))
+		for k, v := range opts.EnvVars {
+			envVarsCopy[k] = v
+		}
+	}
+
 	return &StartConfig{
 		Project:     project,
 		Profile:     profile,
 		Branch:      branch,
 		LabName:     opts.Name,
-		Features:    opts.Features,
+		Features:    featuresCopy,
 		BaseProfile: opts.BaseProfile,
 		Firewall:    opts.Firewall,
 		InitScript:  opts.InitScript,
-		EnvVars:     opts.EnvVars,
+		EnvVars:     envVarsCopy,
 		EnvFile:     opts.EnvFile,
 	}
 }

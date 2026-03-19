@@ -1,10 +1,13 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/claudeup/claudeup-lab/internal/lab"
 	"github.com/spf13/cobra"
@@ -26,6 +29,7 @@ func newPresetCmd() *cobra.Command {
 
 // startFlagNames lists all flag names that correspond to start options.
 // Used to detect mutual exclusivity with --from-lab.
+// SYNC: must match the flags registered in newStartCmd() and newPresetSaveCmd().
 var startFlagNames = []string{
 	"project", "profile", "branch", "feature", "base-profile",
 	"firewall", "init-script", "env", "env-file",
@@ -71,7 +75,11 @@ func newPresetSaveCmd() *cobra.Command {
 				resolver := lab.NewResolver(mgr.Store())
 				meta, err := resolver.Resolve(fromLab)
 				if err != nil {
-					return fmt.Errorf("lab '%s' not found", fromLab)
+					var notFound *lab.NotFoundError
+					if errors.As(err, &notFound) {
+						return fmt.Errorf("lab '%s' not found", fromLab)
+					}
+					return fmt.Errorf("resolve lab '%s': %w", fromLab, err)
 				}
 				if meta.StartConfig == nil {
 					return fmt.Errorf("lab '%s' has no tracked configuration", fromLab)
@@ -166,7 +174,10 @@ func newPresetDeleteCmd() *cobra.Command {
 			mgr := lab.NewManager(baseDirFn())
 
 			if _, err := mgr.Presets().Load(name); err != nil {
-				return fmt.Errorf("preset '%s' not found", name)
+				if errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("preset '%s' not found", name)
+				}
+				return fmt.Errorf("failed to load preset %q: %w", name, err)
 			}
 
 			if !force {
@@ -316,7 +327,10 @@ func newPresetShowCmd() *cobra.Command {
 
 			p, err := mgr.Presets().Load(name)
 			if err != nil {
-				return fmt.Errorf("preset '%s' not found", name)
+				if errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("preset '%s' not found", name)
+				}
+				return fmt.Errorf("failed to load preset %q: %w", name, err)
 			}
 
 			fmt.Printf("Preset: %s\n", p.Name)
@@ -334,6 +348,7 @@ func newPresetShowCmd() *cobra.Command {
 func presetFromStartConfig(name string, cfg *lab.StartConfig) *lab.Preset {
 	return &lab.Preset{
 		Name:        name,
+		CreatedAt:   time.Now().UTC(),
 		Project:     cfg.Project,
 		Profile:     cfg.Profile,
 		Branch:      cfg.Branch,

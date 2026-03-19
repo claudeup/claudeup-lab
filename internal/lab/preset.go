@@ -40,7 +40,7 @@ func (s *PresetStore) Save(p *Preset) error {
 		return err
 	}
 
-	if err := os.MkdirAll(s.dir, 0o755); err != nil {
+	if err := os.MkdirAll(s.dir, 0o700); err != nil {
 		return fmt.Errorf("create preset directory: %w", err)
 	}
 
@@ -50,7 +50,7 @@ func (s *PresetStore) Save(p *Preset) error {
 	}
 
 	path := filepath.Join(s.dir, p.Name+".json")
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("write preset: %w", err)
 	}
 
@@ -93,6 +93,7 @@ func (s *PresetStore) List() ([]*Preset, error) {
 		name := strings.TrimSuffix(entry.Name(), ".json")
 		p, err := s.Load(name)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: skipping unreadable preset %q: %v\n", name, err)
 			continue
 		}
 		presets = append(presets, p)
@@ -194,7 +195,7 @@ func FormatPresetFields(p *Preset) string {
 		add("init-script", p.InitScript)
 	}
 	for _, f := range p.Features {
-		add("features", f)
+		add("feature", f)
 	}
 	if len(p.EnvVars) > 0 {
 		keys := make([]string, 0, len(p.EnvVars))
@@ -203,7 +204,7 @@ func FormatPresetFields(p *Preset) string {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			add("env-vars", k+"="+p.EnvVars[k])
+			add("env", k+"="+p.EnvVars[k])
 		}
 	}
 	if p.EnvFile != "" {

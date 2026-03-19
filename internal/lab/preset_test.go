@@ -379,14 +379,14 @@ func TestFormatPresetFieldsOmitsZero(t *testing.T) {
 	if strings.Contains(output, "branch:") {
 		t.Errorf("output should omit branch, got:\n%s", output)
 	}
-	if strings.Contains(output, "features:") {
-		t.Errorf("output should omit features, got:\n%s", output)
+	if strings.Contains(output, "feature:") {
+		t.Errorf("output should omit feature, got:\n%s", output)
 	}
 	if strings.Contains(output, "firewall:") {
 		t.Errorf("output should omit firewall, got:\n%s", output)
 	}
-	if strings.Contains(output, "env-vars:") {
-		t.Errorf("output should omit env-vars, got:\n%s", output)
+	if strings.Contains(output, "env:") {
+		t.Errorf("output should omit env, got:\n%s", output)
 	}
 	if strings.Contains(output, "env-file:") {
 		t.Errorf("output should omit env-file, got:\n%s", output)
@@ -406,19 +406,19 @@ func TestFormatPresetFieldsRepeatedValues(t *testing.T) {
 	output := lab.FormatPresetFields(preset)
 
 	// Each feature on its own line
-	if strings.Count(output, "features:") != 2 {
-		t.Errorf("expected 2 features: lines, got %d in:\n%s", strings.Count(output, "features:"), output)
+	if strings.Count(output, "feature:") != 2 {
+		t.Errorf("expected 2 feature: lines, got %d in:\n%s", strings.Count(output, "feature:"), output)
 	}
 
 	// Env vars sorted alphabetically
-	if strings.Count(output, "env-vars:") != 3 {
-		t.Errorf("expected 3 env-vars: lines, got %d in:\n%s", strings.Count(output, "env-vars:"), output)
+	if strings.Count(output, "env:") != 3 {
+		t.Errorf("expected 3 env: lines, got %d in:\n%s", strings.Count(output, "env:"), output)
 	}
 
 	lines := strings.Split(output, "\n")
 	var envLines []string
 	for _, line := range lines {
-		if strings.Contains(line, "env-vars:") {
+		if strings.Contains(line, "env:") {
 			envLines = append(envLines, line)
 		}
 	}

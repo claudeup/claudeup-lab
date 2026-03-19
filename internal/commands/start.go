@@ -45,7 +45,10 @@ func newStartCmd() *cobra.Command {
 				presetName := args[0]
 				preset, loadErr := mgr.Presets().Load(presetName)
 				if loadErr != nil {
-					return fmt.Errorf("preset '%s' not found", presetName)
+					if errors.Is(loadErr, os.ErrNotExist) {
+						return fmt.Errorf("preset '%s' not found", presetName)
+					}
+					return fmt.Errorf("failed to load preset %q: %w", presetName, loadErr)
 				}
 
 				baseOpts := preset.ToStartOptions()
