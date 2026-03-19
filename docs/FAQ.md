@@ -244,3 +244,49 @@ claudeup-lab start --base-profile default --profile solo-test
 ```
 
 This applies `default` at user scope, then `solo-test` at project scope, so you get your foundation settings plus just the plugin under test.
+
+## How do I save a lab configuration for reuse?
+
+Use `preset save` with `--from-lab` to capture an existing lab's configuration:
+
+```bash
+claudeup-lab preset save my-config --from-lab myproject-experimental
+```
+
+This reads the lab's tracked start options (project, profile, branch, features, environment variables, and all other flags) and saves them as a named preset. The lab can be running or stopped.
+
+You can also create a preset from explicit flags:
+
+```bash
+claudeup-lab preset save gpu-lab --project ~/code/ml-project --profile gpu --feature python
+```
+
+The two modes are mutually exclusive -- you cannot combine `--from-lab` with other start flags.
+
+## Can I override preset values when starting?
+
+Yes. Pass the preset name as a positional argument to `start`, then add any flags you want to change:
+
+```bash
+claudeup-lab start my-config --branch lab/experiment
+```
+
+The output shows which fields were changed with diff-style markers:
+
+```
+Using preset 'my-config'
+  project:      /Users/you/code/myproject
+  profile:      experimental
+- branch:       lab/experimental
++ branch:       lab/experiment
+```
+
+Unchanged fields are listed without markers. Fields that match the preset value produce no diff output even if the flag was explicitly passed.
+
+## Where are presets stored?
+
+Presets are JSON files in `~/.claudeup-lab/presets/<name>.json`. The format is human-readable and stable. You can share presets between machines by copying the files.
+
+## What happens when I delete a lab that was used to create a preset?
+
+The preset is independent of the lab. Deleting a lab does not affect any presets that were created from it. The preset captured a snapshot of the lab's start options at the time `preset save` was run -- it does not maintain a reference back to the lab.
