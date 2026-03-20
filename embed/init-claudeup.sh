@@ -42,7 +42,16 @@ is_multi_scope() {
         echo "[ERROR] Profile '$profile_name' has invalid JSON: $profile_file" >&2
         exit 1
     fi
-    jq -e '.perScope' "$profile_file" > /dev/null 2>&1
+    jq -e 'has("perScope")' "$profile_file" > /dev/null 2>&1
+}
+
+# Check if a profile is a stack (has includes key).
+# Stacks resolve their own scopes from included profiles and reject --scope flags.
+is_stack() {
+    local profile_name="$1"
+    local profile_file="$CLAUDEUP_HOME/profiles/$profile_name.json"
+    [ -f "$profile_file" ] || return 1
+    jq -e 'has("includes")' "$profile_file" > /dev/null 2>&1
 }
 
 # Apply base profile at user scope (foundation layer)
@@ -56,10 +65,10 @@ if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
     fi
 fi
 
-# Multi-scope profiles define their own scope placement, so --base-profile
-# layering is not compatible. Omitting the scope flag tells claudeup to apply
-# each perScope section (user, project, local) to its respective location.
-# Single-scope profiles use explicit scope flags for layering compatibility.
+# Profile apply strategy:
+# - Multi-scope profiles (perScope key): apply without scope flags, reject --base-profile
+# - Stack profiles (includes key): apply without scope flags (stacks resolve their own scopes)
+# - Single-scope profiles: apply with explicit scope flag for layering compatibility
 if is_multi_scope "$CLAUDE_PROFILE"; then
     if [ -n "${CLAUDE_BASE_PROFILE:-}" ]; then
         echo "[ERROR] --base-profile is not compatible with multi-scope profiles."
@@ -69,6 +78,14 @@ if is_multi_scope "$CLAUDE_PROFILE"; then
     echo "Applying multi-scope profile: $CLAUDE_PROFILE..."
     if claudeup profile apply "$CLAUDE_PROFILE" -y; then
         echo "[OK] Profile '$CLAUDE_PROFILE' applied (all scopes)"
+    else
+        echo "[WARN] claudeup profile apply failed, will retry on next container start"
+        exit 1
+    fi
+elif is_stack "$CLAUDE_PROFILE"; then
+    echo "Applying stack profile: $CLAUDE_PROFILE..."
+    if claudeup profile apply "$CLAUDE_PROFILE" -y; then
+        echo "[OK] Stack '$CLAUDE_PROFILE' applied"
     else
         echo "[WARN] claudeup profile apply failed, will retry on next container start"
         exit 1
