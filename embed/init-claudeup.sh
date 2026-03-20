@@ -42,7 +42,7 @@ is_multi_scope() {
         echo "[ERROR] Profile '$profile_name' has invalid JSON: $profile_file" >&2
         exit 1
     fi
-    jq -e '.perScope' "$profile_file" > /dev/null 2>&1
+    jq -e 'has("perScope")' "$profile_file" > /dev/null 2>&1
 }
 
 # Check if a profile is a stack (has includes key).
@@ -51,7 +51,7 @@ is_stack() {
     local profile_name="$1"
     local profile_file="$CLAUDEUP_HOME/profiles/$profile_name.json"
     [ -f "$profile_file" ] || return 1
-    jq -e '.includes' "$profile_file" > /dev/null 2>&1
+    jq -e 'has("includes")' "$profile_file" > /dev/null 2>&1
 }
 
 # Apply base profile at user scope (foundation layer)
